@@ -10,5 +10,6 @@ urlpatterns = [
 	# connect to views.home
 	path("", views.home, name="home"),
     path("todos/", views.todos, name="todos"),
-    path("leafletmap/", views.leafletmap, name="leafletmap")
+    path("leafletmap/", views.leafletmap, name="leafletmap"),
+    #path("apitest/", views.apitest, name="apitest")
 ]
