@@ -9,5 +9,6 @@ urlpatterns = [
 	# empty path "" = go to the base url of the website
 	# connect to views.home
 	path("", views.home, name="home"),
-    path("todos/", views.todos, name="todos")
+    path("todos/", views.todos, name="todos"),
+    path("leafletmap/", views.leafletmap, name="leafletmap")
 ]
