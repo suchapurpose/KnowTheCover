@@ -1,6 +1,12 @@
 from django.shortcuts import render, HttpResponse
+from PIL import Image
 from .models import TodoItem
 import requests
+import musicbrainzngs
+from musicbrainzngs import *
+from io import BytesIO
+import base64
+
 
 # Create your views here.
 
@@ -30,4 +36,24 @@ def searchWithID(request):
     data = response.json()
     return render(request, 'searchWithID.html', {'data': data})
 
-# browse
+# musicbrainzngs API
+# regular data
+def getArtistByID(request):
+    musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
+
+    artist_id = "aedb1c05-5011-40b0-8b44-373be7b1a4d8"
+    release_id = "c4777169-b451-4256-99e5-e085d8c88672"
+
+    try:
+        result = musicbrainzngs.get_artist_by_id(artist_id)
+
+    except WebServiceError as exc:
+        print("Something went wrong with the request: %s" % exc)
+    else:
+        artist = result["artist"]
+        cover_data = musicbrainzngs.get_image(release_id, "front")
+        decoded_cover = base64.b64decode(cover_data)
+        # pillow_image = Image.frombytes("RGB", (50, 50), decoded_cover)
+        return render(request, 'getArtistByID.html', {'artist': artist, 'cover': cover_data})
+    
+getArtistByID.allow_tags = True

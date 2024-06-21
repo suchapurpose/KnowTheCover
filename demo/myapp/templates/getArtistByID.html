@@ -1,0 +1,13 @@
+{% extends "base.html" %} {% block content %}
+<!DOCTYPE html>
+    <head>
+        <title>getArtistByID</title>
+    </head>
+    <body>
+        <h1>{{ artist.name }}</h1>
+        <p>Sort name: {{ artist.area }}</p>
+        <img src="{{ cover_data }}">
+        {{ cover_data }}
+    </body>
+</html>
+{% endblock %}
