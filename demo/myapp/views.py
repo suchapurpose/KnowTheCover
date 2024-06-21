@@ -18,7 +18,16 @@ def todos(request):
 def leafletmap(request):
     return render(request, "leafletmap.html")
 
-def apitest(request):
-    response = requests.get('https://musicbrainz.org/ws/2/area/45f07934-675a-46d6-a577-6f8637a411b1?inc=aliases')
+# MusicBrainz
+# lookup:   /<ENTITY_TYPE>/<MBID>?inc=<INC>
+# browse:   /<RESULT_ENTITY_TYPE>?<BROWSING_ENTITY_TYPE>=<MBID>&limit=<LIMIT>&offset=<OFFSET>&inc=<INC>
+# search:   /<ENTITY_TYPE>?query=<QUERY>&limit=<LIMIT>&offset=<OFFSET>
+
+# lookup
+def searchWithID(request):
+    url = f'https://musicbrainz.org/ws/2/artist/aedb1c05-5011-40b0-8b44-373be7b1a4d8?inc=aliases&fmt=json'
+    response = requests.get(url)
     data = response.json()
-    return render(request, "apitest.html", {"data": data})
+    return render(request, 'searchWithID.html', {'data': data})
+
+# browse
