@@ -19,8 +19,5 @@ else:
 musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
 
 release_id = "c4777169-b451-4256-99e5-e085d8c88672"
-cover = musicbrainzngs.get_image(release_id, "front", 250)
-print(cover)
-decoded_cover = base64.b64decode(cover)
-print(decoded_cover)
-img = Image.open(BytesIO(decoded_cover))
+cover = musicbrainzngs.get_image_list(release_id)
+print(cover.url)

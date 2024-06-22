@@ -8,9 +8,9 @@ from . import views
 urlpatterns = [
 	# empty path "" = go to the base url of the website
 	# connect to views.home
-	path("", views.home, name="home"),
+	path("home", views.home, name="home"),
     path("todos/", views.todos, name="todos"),
-    path("leafletmap/", views.leafletmap, name="leafletmap"),
+    path("", views.leafletmap, name="leafletmap"),
     path("searchWithID/", views.searchWithID, name="searchWithID"),
     path("getArtistByID", views.getArtistByID, name="getArtistByID")
 ]

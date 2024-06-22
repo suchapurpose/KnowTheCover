@@ -6,8 +6,11 @@
     <body>
         <h1>{{ artist.name }}</h1>
         <p>Sort name: {{ artist.area }}</p>
-        <img src="{{ cover_data }}">
-        {{ cover_data }}
+        {% if image_url %}
+            <img src="{{ image_url }}" alt="Album Cover">
+        {% else %}
+            <p>No approved front image found for this album.</p>
+        {% endif %}
     </body>
 </html>
 {% endblock %}
