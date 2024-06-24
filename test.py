@@ -20,4 +20,7 @@ musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
 
 release_id = "c4777169-b451-4256-99e5-e085d8c88672"
 cover = musicbrainzngs.get_image_list(release_id)
-print(cover.url)
+print(cover)
+
+search_result = musicbrainzngs.search_artists(query="cynic", limit=10)
+print(search_result)

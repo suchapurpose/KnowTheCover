@@ -1,0 +1,33 @@
+<!--search.html-->
+{% extends "base.html" %} {% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search Cover Art</title>
+</head>
+<body>
+    {% if searched %}
+        <h1>Searching for {{ searched }}</h1>
+        <br/>
+        {% for artist in artists %}
+            <div>
+                <h2>{{ artist.name }}</h2>
+                {% if artist.cover_image %}
+                    <div>
+                        {% for cover_image in artist.cover_images %}
+                            <img src="{{ cover_image }}" alt="Cover art for {{ artist.name }}">
+                        {% endfor %}
+                    <div>
+                {% else %}
+                    <p>No cover art available</p>
+                {% endif %}
+                <p>{{ artist.area }}</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <h3>Enter text to search</h3>
+    {% endif %}
+</body>
+</html>
+{% endblock %}

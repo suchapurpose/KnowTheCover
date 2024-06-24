@@ -12,5 +12,6 @@ urlpatterns = [
     path("todos/", views.todos, name="todos"),
     path("", views.leafletmap, name="leafletmap"),
     path("searchWithID/", views.searchWithID, name="searchWithID"),
-    path("getArtistByID", views.getArtistByID, name="getArtistByID")
+    path("getArtistByID/", views.getArtistByID, name="getArtistByID"),
+    path("search/", views.search, name="search"),
 ]
