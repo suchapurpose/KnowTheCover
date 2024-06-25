@@ -13,7 +13,7 @@
         {% for artist in artists %}
             <div>
                 <h2>{{ artist.name }}</h2>
-                {% if artist.cover_image %}
+                {% if artist.cover_images %}
                     <div>
                         {% for cover_image in artist.cover_images %}
                             <img src="{{ cover_image }}" alt="Cover art for {{ artist.name }}">

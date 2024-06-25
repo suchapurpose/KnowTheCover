@@ -44,6 +44,7 @@ def fetch_cover_image_from_artist(artist_id):
                     # increment
                     count += 1
         #return the cover_images list
+        print(cover_images)
         return cover_images
     except musicbrainzngs.WebServiceError as e:
         print(f"No front cover artwork available for artist {artist_id}: {e}")
