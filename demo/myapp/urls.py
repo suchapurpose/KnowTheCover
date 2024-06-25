@@ -14,4 +14,5 @@ urlpatterns = [
     path("searchWithID/", views.searchWithID, name="searchWithID"),
     path("getArtistByID/", views.getArtistByID, name="getArtistByID"),
     path("search/", views.search, name="search"),
+    path('fetch_cover_images/<str:artist_id>/', views.fetch_cover_images, name='fetch_cover_images')
 ]

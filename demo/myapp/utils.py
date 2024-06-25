@@ -1,3 +1,4 @@
+# utils.py
 import musicbrainzngs
 
 # fetch data using MBID (artist id)
@@ -29,12 +30,17 @@ def fetch_cover_image_from_release(release_id):
 # fetch cover art using MBID (artist_id)
 def fetch_cover_image_from_artist(artist_id):
     try:
-        releases = musicbrainzngs.browse_releases(artist_id, limit=5).get('release-list', [])
+        releases = musicbrainzngs.browse_releases(artist_id, limit=None).get('release-list', [])
         cover_images = []
         count = 0
+        seen_titles = set()
         for release in releases:
-            if count >= 3:
+            if count >= 5:
                 break
+            title = release.get('title')
+            if title in seen_titles:
+                continue
+            seen_titles.add(title)
             cover_art_archive = release.get('cover-art-archive', {})
             if cover_art_archive.get('artwork') == 'true' and cover_art_archive.get('front') == 'true':
                 cover_image_url = fetch_cover_image_from_release(release['id'])
