@@ -13,6 +13,6 @@ urlpatterns = [
     path("", views.leafletmap, name="leafletmap"),
     path("searchWithID/", views.searchWithID, name="searchWithID"),
     path("getArtistByID/", views.getArtistByID, name="getArtistByID"),
-    path("search/", views.search, name="search"),
-    path('fetch_cover_images/<str:artist_id>/', views.fetch_cover_images, name='fetch_cover_images')
+    path("search/", views.search, name="search"), # use search_async for async (only load single cover art currently)
+    path('fetch_cover_images/<str:artist_id>/', views.fetch_cover_images_with_cache, name='fetch_cover_images') # use fetch_cover_images_loop for async (only load single cover art currently)
 ]

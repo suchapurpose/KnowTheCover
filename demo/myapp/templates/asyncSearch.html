@@ -39,7 +39,7 @@
                                 data.cover_images.forEach(function(cover_image) {
                                     var img = $("<img>")
                                     .attr("src", cover_image)
-                                    .attr("alt", "{{ artist.name }}")
+                                    .attr("alt", "Cover art for {{ artist.name }}")
                                     .addClass("cover-image")
                                     .on("load", function() {
                                         coverImagesDiv.append(img);

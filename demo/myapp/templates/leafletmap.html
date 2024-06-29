@@ -5,12 +5,30 @@
         <title>Leaflet Map</title>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <style>
+            #map { height: 98vh; }
+            #overlay {
+                position: absolute;
+                top: 8%;
+                left: 1000px;
+                z-index: 1000; /* Ensure overlay is on top of map */
+                background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+                padding: 10px;
+                border-radius: 5px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+                max-width: 500px;
+                max-height: 90%;
+            }
+        </style>
     </head>
     <body>
         <div id="map"></div>
-        <style>
-            #map { height: 98vh; }
-        </style>
+
+        <div id="overlay">
+            <h2>Add Content Here</h2>
+            <p>This is where you can add your form, buttons, or other content.</p>
+        </div>
+
         <script>
             var map = L.map('map').setView([35.677399, 139.746041], 13);
             // Add a resize handler to the map
