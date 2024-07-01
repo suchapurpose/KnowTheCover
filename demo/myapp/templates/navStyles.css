@@ -1,0 +1,29 @@
+/* Add absolute positioning to the overlay elements */
+.navbar-brand-overlay,
+.navbar-toggler-overlay,
+.navbar-nav-overlay,
+.navbar-search-overlay {
+  position: absolute;
+  z-index: 1; /* Ensure they're on top of the map */
+}
+
+/* Position each overlay element */
+.navbar-brand-overlay {
+  top: 10px;
+  left: 50px; /* Move 50px to the right */
+}
+
+.navbar-toggler-overlay {
+  top: 10px;
+  right: 10px;
+}
+
+.navbar-nav-overlay {
+  top: 50px;
+  left: 100px; /* Move 100px to the right */
+}
+
+.navbar-search-overlay {
+  top: 50px;
+  right: 10px;
+}

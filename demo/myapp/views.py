@@ -6,7 +6,7 @@ from aiohttp import ClientSession
 from django.core.cache import cache # for cache
 
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from PIL import Image
 from .models import TodoItem
 import requests
@@ -31,6 +31,9 @@ def todos(request):
 
 def leafletmap(request):
     return render(request, "leafletmap.html")
+
+def leafletmapajax(request):
+    return render(request, "leafletmapajax.html")
 
 # MusicBrainz
 # lookup:   /<ENTITY_TYPE>/<MBID>?inc=<INC>
@@ -57,17 +60,26 @@ getArtistByID.allow_tags = True
 def search(request):
     if request.method == "POST":
         searched = request.POST["searched"]
-        search_results = musicbrainzngs.search_artists(searched, limit=10)
+        search_results = musicbrainzngs.search_artists(searched, limit=4)
         artists = search_results['artist-list']
-        
-        """# call fetch_cover_image_from_artist for each artist
-        for artist in artists:
-           artist_id = artist['id']
-           artist['cover_images'] = fetch_cover_image_from_artist(artist_id)"""
         
         return render(request, 'search.html', {'searched': searched, 'artists': artists})
     else:
         return render(request, 'search.html', {})
+    
+def searchAjax(request):
+    if request.method == "POST":
+        searched = request.POST["searched"]
+        if searched:
+            search_results = musicbrainzngs.search_artists(searched, limit=4)
+            artists = search_results['artist-list']
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'searched': searched, 'artists': artists})
+            return JsonResponse({'error': 'Invalid request method'}, status=100)
+        else:
+            return HttpResponseBadRequest("No search term provided")
+    else:
+        return render(request, 'search.html',{})
 
 def search_with_cache(request):
     if 'searched' in request.GET:

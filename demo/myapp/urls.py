@@ -1,3 +1,4 @@
+# urls.py
 from django.urls import path
 # to import the view above
 from . import views
@@ -10,9 +11,9 @@ urlpatterns = [
 	# connect to views.home
 	path("home", views.home, name="home"),
     path("todos/", views.todos, name="todos"),
-    path("", views.leafletmap, name="leafletmap"),
+    path("", views.leafletmapajax, name="leafletmap"),
     path("searchWithID/", views.searchWithID, name="searchWithID"),
     path("getArtistByID/", views.getArtistByID, name="getArtistByID"),
     path("search/", views.search, name="search"), # use search_async for async (only load single cover art currently)
-    path('fetch_cover_images/<str:artist_id>/', views.fetch_cover_images_with_cache, name='fetch_cover_images') # use fetch_cover_images_loop for async (only load single cover art currently)
+    path('fetch_cover_images/<str:artist_id>/', views.fetch_cover_images_with_cache, name="fetch_cover_images") # use fetch_cover_images_loop for async (only load single cover art currently)
 ]
