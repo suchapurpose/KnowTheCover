@@ -5,14 +5,14 @@
     <head>
         <title>Leaflet Map</title>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <style>
             #map { height: 100vh; }
             #overlay {
                 position: absolute;
-                top: 8%;
-                left: 1000px;
+                top: 15%;
+                left: 80%;
                 z-index: 1000; /* Ensure overlay is on top of map */
                 background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
                 padding: 0px;
@@ -23,14 +23,20 @@
                 overflow-y: auto;
                 display: none; /* hide overlay initially */
             }
+            .artist-cover {
+                width: 50px;
+                height: 50px;
+                object-fit: cover;
+                margin: 5px;
+            }
         </style>
     </head>
     <body>
         <div id="map"></div>
 
         <div id="overlay">
-            <h3 id="country-info">Country</h3>
-            <div>Search function here</div>
+            <h3 id="country-name">Country</h3>
+            <div id="country-info">Search function here</div>
         </div>
 
         <script>
@@ -74,12 +80,39 @@
 
                             // Get the country name from the feature properties
                             var countryName = feature.properties.NAME;
-
+                            var countryISOA2 = feature.properties.ISO_A2;
+                            console.log(countryISOA2)
                              // Update the overlay content
-                            document.getElementById('country-info').innerHTML = '<h3>' + countryName + '</h3>';
+                            document.getElementById('country-name').innerHTML = '<h3>' + countryName + '</h3>';
+
+                            $.ajax({
+                                url: "{% url 'artists_in_country' %}",
+                                data: { ISO_A2: countryISOA2 }, // the data tag needs to be identical to the GET request one in the function
+                                success: function(data) {
+                                    var artistList = "<ul>";
+                                    for (var i = 0; i < data.length; i++) {
+                                        var artist = data[i];
+                                        console.log(artist.cover_images)
+                                        artistList += "<li>" + artist.name;
+
+                                        if (artist.cover_images && artist.cover_images.length > 0) {
+                                            for (var j = 0; j < artist.cover_images.length; j++) {
+                                                artist += '<img src="' + artist.cover_images[j] + '" class="artist-cover">';
+                                            }
+                                        }
+                                        artistList += "</li>";
+                                    }
+                                    artistList += "</ul>";
+                                    document.getElementById('country-info').innerHTML = artistList;
+                                },
+                                error: function(xhr, status, error) {
+                                    document.getElementById('country-info').innerHTML = "Error retrieving artists: " + error;
+                                }
+                            });
 
                             // Show the overlay
                             document.getElementById('overlay').style.display = 'block';
+
                             // Print the country name to the console
                             console.log('Country clicked:', countryName);
                         });

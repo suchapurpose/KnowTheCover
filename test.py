@@ -22,5 +22,12 @@ release_id = "c4777169-b451-4256-99e5-e085d8c88672"
 cover = musicbrainzngs.get_image_list(release_id)
 print(cover)
 
-search_result = musicbrainzngs.search_artists(query="cynic", limit=10)
+search_result = musicbrainzngs.search_artists(query="cynic", limit=1)
 print(search_result)
+print("")
+
+# i suppose its using ISO_A2?
+by_country = musicbrainzngs.search_artists(query=f'country:{"GB"}', limit=4)
+artist = by_country['artist-list']
+print(by_country)
+

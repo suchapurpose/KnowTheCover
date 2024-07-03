@@ -43,7 +43,7 @@ async def fetch_cover_image_from_release_async(session, release_id):
                             return image["thumbnails"][size]
     return None
 
-# fetch cover art using MBID (artist_id)
+# call fetch_cover_image_from_release to fetch image url
 def fetch_cover_image_from_artist(artist_id):
     try:
         releases = musicbrainzngs.browse_releases(artist_id, limit=None).get('release-list', [])
@@ -84,3 +84,5 @@ async def fetch_cover_image_from_artist_async(session, artist_id):
     except musicbrainzngs.WebServiceError as e:
         print(f"No front cover artwork available for artist {artist_id}: {e}")
         return []
+    
+

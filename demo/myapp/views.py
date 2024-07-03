@@ -96,35 +96,13 @@ def search_with_cache(request):
         return render(request, 'search.html', {'searched': searched, 'artists': artists})
     else:
         return render(request, 'search.html', {})
-
-def search_async(request):
-    if request.method == "POST":
-        searched = request.POST["searched"]
-        search_results = musicbrainzngs.search_artists(searched, limit=10)
-        artists = search_results['artist-list']
-
-        # create a new event loop and set it as the current event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            cover_image_list = loop.run_until_complete(fetch_cover_images_async(artists))
-            # attach the fetched vober images to the corresponding artists
-        finally:
-            loop.close()
-
-        for artist, cover_images in zip(artists, cover_image_list):
-            artist['cover_images'] = cover_images
-
-        return render(request, 'search.html', {'searched': searched, 'artists': artists})
-    else:
-        return render(request, 'search.html', {})
     
 # handle fetching cover images by calling fetch_cover_images_from_artists in utils.py    
 def fetch_cover_images(request, artist_id):
     cover_images = fetch_cover_image_from_artist(artist_id)
     return JsonResponse({'cover_images': cover_images})
 
-def fetch_cover_images_with_cache(request, artist_id):
+def fetch_cover_images_with_cache(artist_id):
     cache_key = f'cover_images_{artist_id}'
     cover_images = cache.get(cache_key)
 
@@ -132,17 +110,23 @@ def fetch_cover_images_with_cache(request, artist_id):
         cover_images = fetch_cover_image_from_artist(artist_id)
         cache.set(cache_key, cover_images, 60*15) # cache for 15min
 
-    return JsonResponse({'cover_images': cover_images})
+    # return JsonResponse({'cover_images': cover_images})
+    return cover_images
 
-# async handle fetching cover images by calling fetch_cover_images_from_artists_async in utils.py  
-async def fetch_cover_images_async(artists):
-    async with ClientSession() as session:
-        tasks = [fetch_cover_image_from_artist_async(session, artist['id']) for artist in artists]
-        return await asyncio.gather(*tasks)
-    
-def fetch_cover_images_loop(request, artist_id):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    cover_images = loop.run_until_complete(fetch_cover_images_async(artist_id))
-    loop.close()
-    return JsonResponse({'cover_images': cover_images})
+def artists_in_country(request):
+    country = request.GET.get('ISO_A2')
+    if not country:
+        return JsonResponse({"error": "Country parameter is missing"}, status=400)
+
+    try:
+        result = musicbrainzngs.search_artists(country=country, limit=1)
+        artist_list = result['artist-list']
+
+        for artist in artist_list:
+            artist_id = artist['id']
+            cover_images = fetch_cover_images_with_cache(artist_id=artist_id)
+            artist['cover_images'] = cover_images
+
+        return JsonResponse(artist_list, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

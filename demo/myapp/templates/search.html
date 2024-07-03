@@ -31,7 +31,7 @@
                 $(document).ready(function() {
                     $.ajax({
                         url: "{% url 'fetch_cover_images' artist.id %}",
-                        method: "GET",
+                        method: "POST",
                         success: function(data) {
                             var coverImagesDiv = $("#cover-images-{{ artist.id }}");
                             coverImagesDiv.empty();
