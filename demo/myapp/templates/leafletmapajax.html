@@ -12,13 +12,13 @@
             #overlay {
                 position: absolute;
                 top: 15%;
-                left: 80%;
+                left: 65%;
                 z-index: 1000; /* Ensure overlay is on top of map */
                 background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
                 padding: 0px;
                 border-radius: 5px;
                 box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-                max-width: 500px;
+                width: 500px;
                 max-height: 90vh;
                 overflow-y: auto;
                 display: none; /* hide overlay initially */
@@ -29,6 +29,12 @@
                 object-fit: cover;
                 margin: 5px;
             }
+            .recording-list {
+                width: 100px;
+                height: 100px;
+                object-fit: cover;
+                margin: 5px;
+            }
         </style>
     </head>
     <body>
@@ -36,12 +42,20 @@
 
         <div id="overlay">
             <h3 id="country-name">Country</h3>
-            <div id="country-info">Search function here</div>
+            <div id="country-info">Searching...</div>
         </div>
 
         <script>
-            var map = L.map('map').setView([35.677399, 139.746041], 5); // set initial map
+            
+            // set initial map
+            var map = L.map('map').setView([35.677399, 139.746041], 5); 
             // Add a resize handler to the map
+
+            var maxBounds = L.latLngBounds(
+                L.latLng(map.getBounds()._southWest.lat, map.getBounds()._southWest.lng),
+                L.latLng(map.getBounds()._northEast.lat, map.getBounds()._northEast.lng)
+            );
+
             function resizeMap() {
                 // Resize the map to fit the browser window
                 map.fitBounds(L.latLngBounds(map.getCenter(), map.getZoom()));
@@ -52,7 +66,10 @@
             // add OSM tiles
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 10,
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                minZoom:2,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                //noWrap: true
+                maxBounds: maxBounds,
             }).addTo(map);
 
             var countryLayer; // to hold the geojson layer
@@ -82,9 +99,74 @@
                             var countryName = feature.properties.NAME;
                             var countryISOA2 = feature.properties.ISO_A2;
                             console.log(countryISOA2)
-                             // Update the overlay content
+                            // Update the overlay content
                             document.getElementById('country-name').innerHTML = '<h3>' + countryName + '</h3>';
 
+                            $.ajax({
+                                url: "{% url 'country_search' %}",
+                                data: { ISO_A2: countryISOA2 }, // pass the country ISO A2 code as a parameter
+                                
+                                //using a list
+                                {% comment %} 
+                                success: function(data) {
+                                    var releaseList = "<ul>";
+                                    var imageCount = 0;
+
+                                    for (var i = 0; i < data.length; i++) {
+                                        var release = data[i];
+                                        console.log("Processing release:", release);
+                                        console.log("Cover images:", release.cover_images);
+                                        console.log(release.cover_images);
+
+                                        if (release.cover_images && release.cover_images.length > 0) {
+                                            var coverImage = release.cover_images;
+                                            if (coverImage) {
+                                                releaseList += '<img src="' + coverImage + '" class="recording-list">';
+                                                imageCount++;
+                                            }
+                                        }
+                                    }
+                                    releaseList += "</ul>";
+                                    document.getElementById('country-info').innerHTML = releaseList;
+                                    console.log("Total images processed:", imageCount);
+                                    console.log("releaseList:", releaseList);
+                                    console.log("var release length:", release.cover_images.length);
+                                }, 
+                                {% endcomment %}
+
+                                // appending
+
+                                success: function(data) {
+                                    var imageCount = 0;
+                                    var countryInfoElement = document.getElementById('country-info')
+
+                                    //clear the element before adding new content
+                                    countryInfoElement.innerHTML = '';
+
+                                    for (var i = 0; i < data.length; i++) {
+                                        var release = data[i];
+                                        console.log("Processing release:", release);
+                                        console.log("Cover images:", release.cover_images);
+
+                                        if (release.cover_images && release.cover_images.length > 0) {
+                                            var coverImage = release.cover_images;
+                                            if (coverImage) {
+                                                var imgElement = document.createElement("img");
+                                                imgElement.src = coverImage;
+                                                imgElement.className = "recording-list";
+                                                countryInfoElement.appendChild(imgElement);
+                                                imageCount++;
+                                                console.log("Added image:", coverImage);
+                                            }
+                                        }
+                                    }
+                                    console.log("Total images processed:", imageCount);
+                                }, 
+
+                            });
+
+                            
+                            {% comment %} 
                             $.ajax({
                                 url: "{% url 'artists_in_country' %}",
                                 data: { ISO_A2: countryISOA2 }, // the data tag needs to be identical to the GET request one in the function
@@ -108,7 +190,7 @@
                                 error: function(xhr, status, error) {
                                     document.getElementById('country-info').innerHTML = "Error retrieving artists: " + error;
                                 }
-                            });
+                            }); {% endcomment %}
 
                             // Show the overlay
                             document.getElementById('overlay').style.display = 'block';
@@ -116,21 +198,13 @@
                             // Print the country name to the console
                             console.log('Country clicked:', countryName);
                         });
+
                     }
                 });
                 // Add the country layer to the map
                 map.addLayer(countryLayer);
             });
 
-            var popup = L.popup();
-
-            function onMapClick(e) {
-                popup
-                    .setLatLng(e.latlng)
-                    .setContent("You clicked the map at " + e.latlng.toString())
-                    .openOn(map);
-            }
-            //map.on('click', onMapClick);
         </script>
     </body>
 </html>

@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-s1bpx*t#&y4c%^%s0n4-uq*c$7loacq$*b6el)j7coj2q&2j1(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "myapp",
     "musicbrainzngs",
+    "rest_framework",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
@@ -50,6 +52,11 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
 ]
 
 ROOT_URLCONF = "demo.urls"
