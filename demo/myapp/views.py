@@ -1,13 +1,10 @@
 # views.py
-import asyncio
-import aiohttp
-from aiohttp import ClientSession
-from asgiref.sync import sync_to_async
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.cache import cache # for cache
 
 from django.shortcuts import render
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, StreamingHttpResponse
+import json
 from PIL import Image
 from .models import TodoItem
 import requests
@@ -162,30 +159,56 @@ def fetch_cover_image_from_artist(artist_id):
         return []
     
 
-# REST testing
+# REST testing---------------------------------------------------------
     
 class CountrySearchView(APIView):
     def get(self, request):
+
+        accept_header = request.META.get('HTTP_ACCEPT', '')
+
+        # ensure the existence of the ISO_A2 country parameter
         countryISOA2 = request.GET.get('ISO_A2')
         print(f"Country ISO A2: {countryISOA2}")
+
+        page = int(request.GET.get('page', 1))
+        limit = int(request.GET.get('limit', 25))
+
         if not countryISOA2:
             return JsonResponse({"error": "Country parameter is missing"}, status=400)
 
+        # main function
         try:
-            result = musicbrainzngs.search_releases(country=countryISOA2, limit=10)
+            offset = (page - 1) * limit
+            result = musicbrainzngs.search_releases(country=countryISOA2, limit=limit, offset=offset)
             release_list = result.get('release-list', [])
             print(f"Releases found: {len(release_list)}")
 
-            for release in release_list:
-                release_id = release['id']
-                cover_images = cache_by_release(release_id=release_id)
-                release['cover_images'] = cover_images
-                print(f"Release ID: {release_id}, Cover Images: {cover_images}")
-            print(release_list)
-            return Response(release_list)
+            if 'text/event-stream'in accept_header:
+                response = StreamingHttpResponse(generate_cover_image(release_list))
+                response['Content-Type'] = 'text/event-stream'
+                response['Cache-Control'] = 'no-cache'
+                response['X-Accel-Buffering'] = 'no'
+                return response
+            else:
+                for release in release_list:
+                    release_id = release['id']
+                    cover_images = cache_by_release(release_id=release_id)
+                    release['cover_images'] = cover_images
+                    print(f"Release ID: {release_id}, Cover Images: {cover_images}")
+                print(release_list)
+                return Response(release_list)
         except Exception as e:
             print(f"Error: {str(e)}")
             return JsonResponse({"error": str(e)}, status=500)
+
+def generate_cover_image(release_list):
+    for release in release_list:
+        release_id = release['id']
+        cover_image = cache_by_release(release_id)
+        if cover_image:
+            yield f"data: {{'cover_image': cover_image}}\n\n".encode('utf-8')
+        else:
+            yield f"data: {{'cover_image': None}}\n\n".encode('utf-8')
 
 def cache_by_release(release_id):
     cache_key = f'cover_images_{release_id}'
@@ -195,7 +218,6 @@ def cache_by_release(release_id):
         cover_images = fetch_cover_image_from_release(release_id)
         cache.set(cache_key, cover_images, 60*15) # cache for 15min
 
-    # return JsonResponse({'cover_images': cover_images})
     return cover_images
 
 # fetch cover art using MBID (release_id)
@@ -211,59 +233,6 @@ def fetch_cover_image_from_release(release_id):
         #             if size in image["thumbnails"]:
         #                 print(image["thumbnails"][size])
         #                 return image["thumbnails"][size]
-                    
-    except musicbrainzngs.WebServiceError as e:
-        print("Something went wrong with the request: %s" % e)
-    return []
-
-# REST return each image
-
-class CountrySearchViewEach(APIView):
-    def get(self, request):
-        countryISOA2 = request.GET.get('ISO_A2')
-        print(f"Country ISO A2: {countryISOA2}")
-        if not countryISOA2:
-            return JsonResponse({"error": "Country parameter is missing"}, status=400)
-
-        try:
-            result = musicbrainzngs.search_releases(country=countryISOA2)
-            release_list = result.get('release-list', [])
-            print(f"Releases found: {len(release_list)}")
-
-            for release in release_list:
-                release_id = release['id']
-                cover_images = release['cover_images']
-                if cover_images:
-                    print(f"Release ID: {release_id}, Cover Image: {cover_images}")
-                    return Response({'cover_image': cover_images})
-
-            return JsonResponse({"error": "No releases found"}, status=404)   
-        except Exception as e:
-            print(f"Error: {str(e)}")
-            return JsonResponse({"error": str(e)}, status=500)
-        
-def cache_by_release_each(release_id):
-    cache_key = f'cover_images_{release_id}'
-    cover_images = cache.get(cache_key)
-
-    if not cover_images:
-        cover_images = fetch_cover_image_from_release_each(release_id)
-        cache.set(cache_key, cover_images, 60*15) # cache for 15min
-
-    # return JsonResponse({'cover_images': cover_images})
-    return cover_images
-    
-# fetch cover art using MBID (release_id)
-def fetch_cover_image_from_release_each(release_id):
-    try:
-        result = musicbrainzngs.get_image_list(release_id)
-        for image in result["images"]:
-            if "Front" in image["types"] and image["approved"]:
-                # thumbnails: 1200, 500, 250, large, small
-                for size in ["1200", "500", "250", "large", "small"]:
-                    if size in image["thumbnails"]:
-                        print(image["thumbnails"][size])
-                        return image["thumbnails"][size]
                     
     except musicbrainzngs.WebServiceError as e:
         print("Something went wrong with the request: %s" % e)
