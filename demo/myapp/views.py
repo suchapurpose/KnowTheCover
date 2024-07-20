@@ -15,6 +15,8 @@ from .utils import *
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+import asyncio
+
 musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
 
 # Create your views here.
@@ -210,10 +212,10 @@ def generate_cover_image(release_list):
         else:
             yield f"data: {{'cover_image': None}}\n\n".encode('utf-8')
 
+# check and cache cover images by release ID
 def cache_by_release(release_id):
     cache_key = f'cover_images_{release_id}'
     cover_images = cache.get(cache_key)
-
     if not cover_images:
         cover_images = fetch_cover_image_from_release(release_id)
         cache.set(cache_key, cover_images, 60*15) # cache for 15min
@@ -225,15 +227,22 @@ def fetch_cover_image_from_release(release_id):
     try:
         result = musicbrainzngs.get_image_list(release_id)
         image_url = result["images"][0]['thumbnails']
-        return image_url.get("250", " ")
-        # for image in result["images"]:
-        #     if "Front" in image["types"] and image["approved"]:
-        #         # thumbnails: 1200, 500, 250, large, small
-        #         for size in ["small", "large", "250", "500", "1200"]:
-        #             if size in image["thumbnails"]:
-        #                 print(image["thumbnails"][size])
-        #                 return image["thumbnails"][size]
-                    
+        return image_url.get("250", " ")                   
+    except musicbrainzngs.WebServiceError as e:
+        print("Something went wrong with the request: %s" % e)
+    return []
+
+# fetch cover image with highest resolution
+def fetch_best_cover_image(release_id):
+    try:
+        result = musicbrainzngs.get_image_list(release_id)
+        for image in result["images"]:
+            if "Front" in image["types"] and image["approved"]:
+                # thumbnails: 1200, 500, 250, large, small
+                for size in ["1200", "500", "250", "large", "small"]:
+                    if size in image["thumbnails"]:
+                        print(image["thumbnails"][size])
+                        return image["thumbnails"][size]
     except musicbrainzngs.WebServiceError as e:
         print("Something went wrong with the request: %s" % e)
     return []
