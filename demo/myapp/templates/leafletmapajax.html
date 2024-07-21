@@ -53,50 +53,58 @@
             let currentPage = 1;
             const itemsPerPage = 10;
             let totalItems = 0;
-            let allData = [];
+            let allData = []; // Ensure allData is an array
+            let currentCountryISOA2 = '';
 
             // Function to fetch data and initialize pagination
-            function fetchDataAndInitializePagination(countryISOA2) {
+            function fetchDataAndInitializePagination(countryISOA2, page=1) {
+                // Ensure countryISOA2 is not undefined or null
+                if (!countryISOA2) {
+                    console.error("Country ISO A2 is required but not provided.");
+                    return;
+                }
                 $.ajax({
                     url: "{% url 'country_search' %}",
-                    data: { ISO_A2: countryISOA2 },
+                    data: { ISO_A2: countryISOA2, page: page },
                     success: function(data) {
-                        allData = data;
-                        totalItems = data.length;
-                        currentPage = 1; // Reset to the first page
-                        updateOverlayContent();
+                        console.log(data); // Debug to see the structure of the response
+                        allData = data.releases;
+                        console.log("releases", allData); // Debugging
+                        totalItems = data.total_items;
+                        currentPage = data.current_page;
+                        updateOverlayContent(countryISOA2);
                     },
                     error: function(xhr, status, error) {
-                        document.getElementById('country-info').innerHTML = "Error retrieving album cover images: " + error;
+                        document.getElementById('country-info').innerHTML = "Error retrieving album cover images from server: " + error;
                     }
                 });
             }
 
             // Function to update the overlay content based on the current page
-            function updateOverlayContent() {
+            function updateOverlayContent(countryISOA2) {
                 var countryInfoElement = document.getElementById('country-info');
                 countryInfoElement.innerHTML = ''; // Clear existing content
-
-                const startIndex = (currentPage - 1) * itemsPerPage;
-                const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-
-                for (let i = startIndex; i < endIndex; i++) {
-                    const release = allData[i];
-                    if (release.cover_images && release.cover_images.length > 0) {
-                        var coverImage = release.cover_images;
-                        if (coverImage) {
+            
+                // Check if allData is defined and is an array
+                if (Array.isArray(allData)) {
+                    for (let i = 0; i < allData.length; i++) {
+                        let release = allData[i];
+                        if (release.cover_images && release.cover_images.length > 0) {
+                            var coverImage = release.cover_images;
                             var imgElement = document.createElement("img");
                             imgElement.src = coverImage;
                             imgElement.className = "recording-list";
                             countryInfoElement.appendChild(imgElement);
                         }
                     }
+                } else {
+                    console.log('allData is undefined or not an array');
                 }
-                updatePaginationControls();
+                updatePaginationControls(countryISOA2);
             }
 
             // Function to update pagination controls
-            function updatePaginationControls() {
+            function updatePaginationControls(countryISOA2) {
                 const paginationElement = document.getElementById('pagination-controls');
                 paginationElement.innerHTML = ' '; // Clear existing controls
 
@@ -107,7 +115,7 @@
                     pageButton.innerHTML = i;
                     pageButton.onclick = function() {
                         currentPage = i;
-                        updateOverlayContent();
+                        fetchDataAndInitializePagination(countryISOA2, i);
                     };
                     if (i === currentPage) {
                         pageButton.style.fontWeight = 'bold';
@@ -118,8 +126,9 @@
 
             // Event handler for country click
             function onCountryClick(countryName, countryISOA2) {
+                currentCountryISOA2 = countryISOA2;
                 document.getElementById('country-name').innerHTML = '<h3>' + countryName + '</h3>';
-                fetchDataAndInitializePagination(countryISOA2);
+                fetchDataAndInitializePagination(countryISOA2=currentCountryISOA2);
                 document.getElementById('overlay').style.display = 'block';
             }
 
@@ -174,7 +183,8 @@
                             });
                             var countryName = feature.properties.NAME;
                             var countryISOA2 = feature.properties.ISO_A2;
-                            onCountryClick(countryName, countryISOA2);
+                            console.log('Country clicked:', countryName, countryISOA2);
+                            onCountryClick(countryName=countryName, countryISOA2=countryISOA2);
                         });
                     }
                 });

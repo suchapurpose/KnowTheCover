@@ -172,33 +172,39 @@ class CountrySearchView(APIView):
         countryISOA2 = request.GET.get('ISO_A2')
         print(f"Country ISO A2: {countryISOA2}")
 
-        page = int(request.GET.get('page', 1))
-        limit = int(request.GET.get('limit', 25))
-
         if not countryISOA2:
             return JsonResponse({"error": "Country parameter is missing"}, status=400)
 
+        page_number = int(request.GET.get('page', 1))
+        limit = 10
+
         # main function
         try:
-            offset = (page - 1) * limit
-            result = musicbrainzngs.search_releases(country=countryISOA2, limit=limit, offset=offset)
+            # search for releases in the country
+            result = musicbrainzngs.search_releases(country=countryISOA2, limit=20, offset=20)
             release_list = result.get('release-list', [])
             print(f"Releases found: {len(release_list)}")
 
-            if 'text/event-stream'in accept_header:
-                response = StreamingHttpResponse(generate_cover_image(release_list))
-                response['Content-Type'] = 'text/event-stream'
-                response['Cache-Control'] = 'no-cache'
-                response['X-Accel-Buffering'] = 'no'
-                return response
-            else:
-                for release in release_list:
-                    release_id = release['id']
-                    cover_images = cache_by_release(release_id=release_id)
-                    release['cover_images'] = cover_images
-                    print(f"Release ID: {release_id}, Cover Images: {cover_images}")
-                print(release_list)
-                return Response(release_list)
+            # use Django Paginator
+            paginator = Paginator(release_list, limit)
+            page_obj = paginator.get_page(page_number)
+
+            # fetch cover images for each release
+            for release in page_obj:
+                release_id = release['id']
+                cover_images = cache_by_release(release_id=release_id)
+                release['cover_images'] = cover_images
+                print(f"Release ID: {release_id}, Cover Images: {cover_images}")
+            print(release_list)
+
+            # return the response
+            response_data = {
+                'releases': list(page_obj),
+                'total_pages': paginator.num_pages,
+                'current_page': page_obj.number,
+                'total_items': paginator.count,
+            }
+            return JsonResponse(response_data, safe=False)
         except Exception as e:
             print(f"Error: {str(e)}")
             return JsonResponse({"error": str(e)}, status=500)
