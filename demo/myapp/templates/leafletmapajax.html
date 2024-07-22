@@ -50,7 +50,7 @@
             var countryInfoElement = document.getElementById('country-info');
 
             // Global variables to handle pagination
-            let currentPage = 1;
+            var currentPage = 1;
             const itemsPerPage = 10;
             let totalItems = 0;
             let allData = []; // Ensure allData is an array
@@ -89,8 +89,8 @@
                 if (Array.isArray(allData)) {
                     for (let i = 0; i < allData.length; i++) {
                         let release = allData[i];
-                        if (release.cover_images && release.cover_images.length > 0) {
-                            var coverImage = release.cover_images;
+                        if (release.cover_image && release.cover_image.length > 0) {
+                            var coverImage = release.cover_image;
                             var imgElement = document.createElement("img");
                             imgElement.src = coverImage;
                             imgElement.className = "recording-list";
@@ -108,32 +108,42 @@
                 const paginationElement = document.getElementById('pagination-controls');
                 paginationElement.innerHTML = ' '; // Clear existing controls
 
-                const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-                for (let i = 1; i <= totalPages; i++) {
-                    const pageButton = document.createElement("button");
-                    pageButton.innerHTML = i;
-                    pageButton.onclick = function() {
-                        currentPage = i;
-                        fetchDataAndInitializePagination(countryISOA2, i);
-                    };
-                    if (i === currentPage) {
-                        pageButton.style.fontWeight = 'bold';
-                    }
-                    paginationElement.appendChild(pageButton);
+                // Create button for previous page
+                const prevButton = document.createElement("button");
+                prevButton.innerHTML = "Previous";
+                // Disable Previous Button if on the first page
+                if (currentPage <= 1) {
+                    prevButton.disabled = true;
+                } else {
+                    prevButton.disabled = false;
                 }
+                prevButton.addEventListener('click', function() {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        fetchDataAndInitializePagination(countryISOA2, currentPage);
+                    }
+                });
+                paginationElement.appendChild(prevButton);
+
+                // Create button for next page
+                const nextButton = document.createElement("button");
+                nextButton.innerHTML = "Next";
+                nextButton.addEventListener('click', function() {
+                    currentPage++;
+                    fetchDataAndInitializePagination(countryISOA2, currentPage);
+                });
+                paginationElement.appendChild(nextButton);
             }
 
             // Event handler for country click
             function onCountryClick(countryName, countryISOA2) {
                 currentCountryISOA2 = countryISOA2;
                 document.getElementById('country-name').innerHTML = '<h3>' + countryName + '</h3>';
-                fetchDataAndInitializePagination(countryISOA2=currentCountryISOA2);
+                currentPage = 1;
+                fetchDataAndInitializePagination(countryISOA2=currentCountryISOA2, page=currentPage);
                 document.getElementById('overlay').style.display = 'block';
             }
 
-
-            
             // set initial map
             var map = L.map('map').setView([35.677399, 139.746041], 5); 
             // Add a resize handler to the map

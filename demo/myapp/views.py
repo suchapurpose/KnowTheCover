@@ -160,43 +160,50 @@ def fetch_cover_image_from_artist(artist_id):
         print(f"No front cover artwork available for artist {artist_id}: {e}")
         return []
     
-
 # REST testing---------------------------------------------------------
     
 class CountrySearchView(APIView):
     def get(self, request):
-
-        accept_header = request.META.get('HTTP_ACCEPT', '')
-
         # ensure the existence of the ISO_A2 country parameter
         countryISOA2 = request.GET.get('ISO_A2')
         print(f"Country ISO A2: {countryISOA2}")
-
         if not countryISOA2:
             return JsonResponse({"error": "Country parameter is missing"}, status=400)
 
         page_number = int(request.GET.get('page', 1))
         limit = 10
-
+        all_releases_with_images =[]
+        offset = 0
+        
         # main function
         try:
-            # search for releases in the country
-            result = musicbrainzngs.search_releases(country=countryISOA2, limit=20, offset=20)
-            release_list = result.get('release-list', [])
-            print(f"Releases found: {len(release_list)}")
+            # fetch cover images for each release
+            while len(all_releases_with_images) < limit:
+                result = musicbrainzngs.search_releases(country=countryISOA2, limit=100, offset=offset)
+                release_list = result.get('release-list', [])
+                print(f"Releases found: {len(release_list)}")
+
+                if not release_list:
+                    break  # No more releases to fetch
+
+                for release in release_list:
+                    release_id = release['id']
+                    cover_image = cache_by_release(release_id=release_id)
+                    if cover_image:  # Filter out releases without images
+                        release['cover_image'] = cover_image
+                        all_releases_with_images.append(release)
+                    if len(all_releases_with_images) == limit:
+                        break  # Stop if we have enough releases with images
+
+                offset += 10  # Increase offset for the next batch
 
             # use Django Paginator
-            paginator = Paginator(release_list, limit)
-            page_obj = paginator.get_page(page_number)
-
-            # fetch cover images for each release
-            for release in page_obj:
-                release_id = release['id']
-                cover_images = cache_by_release(release_id=release_id)
-                release['cover_images'] = cover_images
-                print(f"Release ID: {release_id}, Cover Images: {cover_images}")
-            print(release_list)
-
+            paginator = Paginator(all_releases_with_images, limit)
+            try:
+                page_obj = paginator.page(page_number)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+                print(f"Page {page_number} is out of range")
             # return the response
             response_data = {
                 'releases': list(page_obj),
@@ -220,18 +227,19 @@ def generate_cover_image(release_list):
 
 # check and cache cover images by release ID
 def cache_by_release(release_id):
-    cache_key = f'cover_images_{release_id}'
-    cover_images = cache.get(cache_key)
-    if not cover_images:
-        cover_images = fetch_cover_image_from_release(release_id)
-        cache.set(cache_key, cover_images, 60*15) # cache for 15min
+    cache_key = f'cover_image_{release_id}'
+    cover_image = cache.get(cache_key)
+    if not cover_image:
+        cover_image = fetch_cover_image_from_release(release_id)
+        cache.set(cache_key, cover_image, 60*15) # cache for 15min
 
-    return cover_images
+    return cover_image
 
 # fetch cover art using MBID (release_id)
 def fetch_cover_image_from_release(release_id):
     try:
         result = musicbrainzngs.get_image_list(release_id)
+        print(result)
         image_url = result["images"][0]['thumbnails']
         return image_url.get("250", " ")                   
     except musicbrainzngs.WebServiceError as e:
