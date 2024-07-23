@@ -160,8 +160,7 @@ def fetch_cover_image_from_artist(artist_id):
         print(f"No front cover artwork available for artist {artist_id}: {e}")
         return []
     
-# REST testing---------------------------------------------------------
-    
+# Country Search================================================================================================
 class CountrySearchView(APIView):
     def get(self, request):
         # ensure the existence of the ISO_A2 country parameter
@@ -188,6 +187,8 @@ class CountrySearchView(APIView):
 
                 for release in release_list:
                     release_id = release['id']
+                    release_title = release['title']
+                    print(f"Release title: {release_title}")
                     cover_image = cache_by_release(release_id=release_id)
                     if cover_image:  # Filter out releases without images
                         release['cover_image'] = cover_image
@@ -239,8 +240,8 @@ def cache_by_release(release_id):
 def fetch_cover_image_from_release(release_id):
     try:
         result = musicbrainzngs.get_image_list(release_id)
-        print(result)
         image_url = result["images"][0]['thumbnails']
+        print(image_url["250"])
         return image_url.get("250", " ")                   
     except musicbrainzngs.WebServiceError as e:
         print("Something went wrong with the request: %s" % e)
@@ -260,3 +261,21 @@ def fetch_best_cover_image(release_id):
     except musicbrainzngs.WebServiceError as e:
         print("Something went wrong with the request: %s" % e)
     return []
+
+# Artist Search================================================================================================
+class ArtistSearchView(APIView):
+    def get(self, request):
+        query = request.GET.get('query')
+        if not query:
+            return Response({"error": "No search term provided"}, status=400)
+
+        try:
+            result = musicbrainzngs.search_artists(query, limit=10)
+            artist_list = result.get('artist-list', [])
+            for artist in artist_list:
+                artist_id = artist['id']
+                cover_images = fetch_cover_image_from_artist(artist_id)
+                artist['cover_images'] = cover_images
+            return JsonResponse({'artist_list': artist_list}, safe=False)
+        except musicbrainzngs.WebServiceError as e:
+            return Response({"error": str(e)}, status=500)

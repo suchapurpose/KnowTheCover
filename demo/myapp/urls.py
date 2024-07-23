@@ -17,4 +17,6 @@ urlpatterns = [
     path("search/", views.search, name="search"), # use search_async for async (only load single cover art currently)
     path('artists_in_country/', views.artists_in_country, name="artists_in_country"),
     path('country_search/', views.CountrySearchView.as_view(), name="country_search"),
+    path('artist_search/', views.ArtistSearchView.as_view(), name="artist_search"),
+    path('fetch_cover_images/', views.fetch_cover_images, name="fetch_cover_images"),
 ]

@@ -9,19 +9,19 @@
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
         <style>
             #map { height: 100vh; }
-            #overlay {
+            #country-overlay {
                 position: absolute;
                 top: 15%;
                 left: 65%;
                 z-index: 1000; /* Ensure overlay is on top of map */
-                background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+                background-color: rgba(255, 255, 255, 0.8); 
                 padding: 0px;
                 border-radius: 5px;
                 box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
                 width: 500px;
                 max-height: 90vh;
                 overflow-y: auto;
-                display: none; /* hide overlay initially */
+                display: none; 
             }
             .artist-cover {
                 width: 50px;
@@ -40,17 +40,24 @@
     <body>
         <div id="map"></div>
 
-        <div id="overlay">
+        <div id="country-overlay">
             <h3 id="country-name">Country</h3>
             <div id="country-info">Searching...</div>
             <div id="pagination-controls"></div>
         </div>
 
+        <div id="artist-overlay">
+            <h3 id="artist-search-input">Searching Terms</h3>
+            <div id="artist-search-results">Searching...</div>
+            <div id="artist-pagination-controls"></div>
+        </div>
+
         <script>
+            // Country Search related functions--------------------------------------------------------------------------------
             var countryInfoElement = document.getElementById('country-info');
 
             // Global variables to handle pagination
-            var currentPage = 1;
+            let currentPage = 1;
             const itemsPerPage = 10;
             let totalItems = 0;
             let allData = []; // Ensure allData is an array
@@ -141,9 +148,10 @@
                 document.getElementById('country-name').innerHTML = '<h3>' + countryName + '</h3>';
                 currentPage = 1;
                 fetchDataAndInitializePagination(countryISOA2=currentCountryISOA2, page=currentPage);
-                document.getElementById('overlay').style.display = 'block';
+                document.getElementById('country-overlay').style.display = 'block';
             }
 
+            // Map implementation-------------------------------------------------------------------------------------------------------------------
             // set initial map
             var map = L.map('map').setView([35.677399, 139.746041], 5); 
             // Add a resize handler to the map
@@ -201,6 +209,42 @@
                 map.addLayer(countryLayer);
             });
 
+            // Navbar Search related functions-------------------------------------------------------------------------------------------------------------------------------------
+            document.getElementById('navbar-search-form').addEventListener('submit', navbarSearch);
+
+            function navbarSearch(event) {
+                event.preventDefault();
+                let searchQuery = document.getElementById('navbar-search-input').value;
+                console.log("Search Query:", searchQuery); // Debug log
+                fetchSearchResults(searchQuery);
+            }
+
+            function fetchSearchResults(query) {
+                $.ajax({
+                    url: "{% url 'artist_search' %}",
+                    data: { query: query },
+                    method: "GET",
+                    success: function(data) {
+                        console.log("Search Results:", data); // Debug log
+                        displaySearchResults(query);
+                    },
+                    error: function(xhr, status, error) {
+                        document.getElementById('artist-search-results').innerHTML = "Error retrieving search results:" + error;
+                    }
+                });
+            }
+
+            function displaySearchResults(data) {
+                let resultsElement = document.getElementById('artist-search-results');
+                resultsElement.innerHTML = ''; // Clear existing content
+                if (Array.isArray(data)) {
+                    data.forEach(result => {
+                        let artistElement = document.createElement('div');
+                        artistElement.textContent = artist.name;
+                        resultsElement.appendChild(artistElement);
+                    })
+                }
+            }
         </script>
     </body>
 </html>
