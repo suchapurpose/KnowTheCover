@@ -9,7 +9,7 @@
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
         <style>
             #map { height: 100vh; }
-            #country-overlay {
+            .overlay {
                 position: absolute;
                 top: 15%;
                 left: 65%;
@@ -23,12 +23,6 @@
                 overflow-y: auto;
                 display: none; 
             }
-            .artist-cover {
-                width: 50px;
-                height: 50px;
-                object-fit: cover;
-                margin: 5px;
-            }
             .recording-list {
                 width: 100px;
                 height: 100px;
@@ -40,31 +34,47 @@
     <body>
         <div id="map"></div>
 
-        <div id="country-overlay">
+        <div id="country-overlay" class="overlay">
             <h3 id="country-name">Country</h3>
             <div id="country-info">Searching...</div>
             <div id="pagination-controls"></div>
         </div>
 
-        <div id="artist-overlay">
-            <h3 id="artist-search-input">Searching Terms</h3>
+        <div id="artist-overlay" class="overlay">
+            <h3 id="artist-search-input">Searching for</h3>
             <div id="artist-search-results">Searching...</div>
             <div id="artist-pagination-controls"></div>
         </div>
 
         <script>
+            function imageHover() {
+                $('.recording-list').hover(
+                    function() {
+                        const title = $(this).attr('title');
+                        const tooltip = $('<div class="tooltip"></div>').text(title).appendTo('body');
+                        $(this).data('tooltip', tooltip);
+                    },
+                    function() {
+                        $(this).data('tooltip').remove();
+                    }
+                ).mousemove(function(e) {
+                    const tooltip = $(this).data('tooltip');
+                    if (tooltip) {
+                        tooltip.css({ top: e.pageY + 10, left: e.pageX + 20 });
+                    }
+                });
+            }
+
             // Country Search related functions--------------------------------------------------------------------------------
             var countryInfoElement = document.getElementById('country-info');
 
             // Global variables to handle pagination
-            let currentPage = 1;
-            const itemsPerPage = 10;
             let totalItems = 0;
             let allData = []; // Ensure allData is an array
             let currentCountryISOA2 = '';
 
             // Function to fetch data and initialize pagination
-            function fetchDataAndInitializePagination(countryISOA2, page=1) {
+            function fetchDataAndInitializePagination(countryISOA2, page) {
                 // Ensure countryISOA2 is not undefined or null
                 if (!countryISOA2) {
                     console.error("Country ISO A2 is required but not provided.");
@@ -76,10 +86,19 @@
                     success: function(data) {
                         console.log(data); // Debug to see the structure of the response
                         allData = data.releases;
-                        console.log("releases", allData); // Debugging
+                        console.log("releases: ", allData); // Debugging
                         totalItems = data.total_items;
-                        currentPage = data.current_page;
-                        updateOverlayContent(countryISOA2);
+                        console.log("Total Items: ", totalItems); // Debugging
+                        data.current_page = currentPage;
+                        console.log("Current Page: ", data.current_page); // Debugging
+                        // Check if we have at least 10 cover images
+                        let coverImages = allData.filter(release => release.cover_image && release.cover_image.length > 0);
+                        if (coverImages.length < 10 && currentPage < Math.ceil(totalItems / 10) && data.total_pages < 10) {
+                            currentPage++;
+                            fetchDataAndInitializePagination(countryISOA2, currentPage);
+                        } else {
+                            updateOverlayContent(countryISOA2);
+                        }
                     },
                     error: function(xhr, status, error) {
                         document.getElementById('country-info').innerHTML = "Error retrieving album cover images from server: " + error;
@@ -100,6 +119,7 @@
                             var coverImage = release.cover_image;
                             var imgElement = document.createElement("img");
                             imgElement.src = coverImage;
+                            imgElement.title = release.title;
                             imgElement.className = "recording-list";
                             countryInfoElement.appendChild(imgElement);
                         }
@@ -108,6 +128,7 @@
                     console.log('allData is undefined or not an array');
                 }
                 updatePaginationControls(countryISOA2);
+                imageHover();
             }
 
             // Function to update pagination controls
@@ -148,6 +169,7 @@
                 document.getElementById('country-name').innerHTML = '<h3>' + countryName + '</h3>';
                 currentPage = 1;
                 fetchDataAndInitializePagination(countryISOA2=currentCountryISOA2, page=currentPage);
+                document.getElementById('artist-overlay').style.display = 'none';
                 document.getElementById('country-overlay').style.display = 'block';
             }
 
@@ -199,6 +221,7 @@
                                 opacity: 0.5,
                                 color: 'orange'
                             });
+
                             var countryName = feature.properties.NAME;
                             var countryISOA2 = feature.properties.ISO_A2;
                             console.log('Country clicked:', countryName, countryISOA2);
@@ -225,8 +248,9 @@
                     data: { query: query },
                     method: "GET",
                     success: function(data) {
+                        document.getElementById('artist-search-input').textContent = "Searching for " + query;
                         console.log("Search Results:", data); // Debug log
-                        displaySearchResults(query);
+                        displayArtists(data);
                     },
                     error: function(xhr, status, error) {
                         document.getElementById('artist-search-results').innerHTML = "Error retrieving search results:" + error;
@@ -234,16 +258,37 @@
                 });
             }
 
-            function displaySearchResults(data) {
-                let resultsElement = document.getElementById('artist-search-results');
-                resultsElement.innerHTML = ''; // Clear existing content
-                if (Array.isArray(data)) {
-                    data.forEach(result => {
-                        let artistElement = document.createElement('div');
-                        artistElement.textContent = artist.name;
-                        resultsElement.appendChild(artistElement);
-                    })
+            function displayArtists(data) {
+                const artistListContainer = document.getElementById('artist-search-results');
+                artistListContainer.innerHTML = ''; // Clear existing content
+                if (Array.isArray(data.artist_list) && data.artist_list.length > 0) {
+                    data.artist_list.forEach(artist => {
+                        console.log(artist); // Debug log
+                        let artistDiv = document.createElement('div');
+                        artistDiv.textContent = artist.name;
+                        if (Array.isArray(artist.release_info)) {
+                            if (artist.release_info.length == 0) {
+                                let noCoverText = document.createElement('p');
+                                noCoverText.textContent = "No cover images available.";
+                                artistDiv.appendChild(noCoverText);
+                            }
+                            else {
+                                artistDiv.appendChild(document.createElement('br')); // Add line break after artist name
+                                artist.release_info.forEach(release => {
+                                    let imgElement = document.createElement('img');
+                                    imgElement.src = release.cover_image;
+                                    imgElement.className = "recording-list";
+                                    imgElement.title = release.title;
+                                    artistDiv.appendChild(imgElement);
+                                });
+                            }
+                        artistListContainer.appendChild(artistDiv);
+                        }
+                    });
                 }
+                document.getElementById('country-overlay').style.display = 'none';
+                document.getElementById('artist-overlay').style.display = 'block';
+                imageHover();
             }
         </script>
     </body>

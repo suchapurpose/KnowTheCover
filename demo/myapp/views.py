@@ -133,32 +133,6 @@ def artists_in_country(request):
         return JsonResponse(artist_list, safe=False)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-# call fetch_cover_image_from_release to fetch image url
-def fetch_cover_image_from_artist(artist_id):
-    try:
-        releases = musicbrainzngs.browse_releases(artist_id, limit=None).get('release-list', [])
-        cover_images = []
-        count = 0
-        seen_titles = set()
-        for release in releases:
-            if count >= 8:
-                break
-            title = release.get('title')
-            if title in seen_titles:
-                continue
-            seen_titles.add(title)
-            cover_art_archive = release.get('cover-art-archive', {})
-            if cover_art_archive.get('artwork') == 'true' and cover_art_archive.get('front') == 'true':
-                cover_image_url = cache_by_release(release['id'])
-                if cover_image_url:
-                    cover_images.append(cover_image_url) # add the url to the cover_images list
-                    count += 1
-        print(cover_images)
-        return cover_images
-    except musicbrainzngs.WebServiceError as e:
-        print(f"No front cover artwork available for artist {artist_id}: {e}")
-        return []
     
 # Country Search================================================================================================
 class CountrySearchView(APIView):
@@ -170,41 +144,57 @@ class CountrySearchView(APIView):
             return JsonResponse({"error": "Country parameter is missing"}, status=400)
 
         page_number = int(request.GET.get('page', 1))
-        limit = 10
-        all_releases_with_images =[]
-        offset = 0
-        
+        limit = 10 # Number of releases per page
+        offset = request.session.get('offset', 0)
+        fetch_count = request.session.get('fetch_count', 0)
+
         # main function
         try:
+            all_releases_with_images = []
             # fetch cover images for each release
             while len(all_releases_with_images) < limit:
+                print("hihihihihihihihihihihihi")
                 result = musicbrainzngs.search_releases(country=countryISOA2, limit=100, offset=offset)
                 release_list = result.get('release-list', [])
                 print(f"Releases found: {len(release_list)}")
+                print(f"1st release: {release_list[0]}")
 
                 if not release_list:
-                    break  # No more releases to fetch
+                    break  # if no more releases to fetch
 
                 for release in release_list:
+                    fetch_count += 1
                     release_id = release['id']
                     release_title = release['title']
                     print(f"Release title: {release_title}")
                     cover_image = cache_by_release(release_id=release_id)
-                    if cover_image:  # Filter out releases without images
+                    if cover_image:
                         release['cover_image'] = cover_image
                         all_releases_with_images.append(release)
                     if len(all_releases_with_images) == limit:
+                        print(f"Fetch count: {fetch_count}")
                         break  # Stop if we have enough releases with images
+                offset += fetch_count
+                print(f"Offset: {offset}")
+                new_list = all_releases_with_images.copy()
+            all_releases_with_images.clear() # clear the list
+            print(f"all_releases_with_images length: {len(all_releases_with_images)}")
+            print(f"new_list length: {len(new_list)}")
 
-                offset += 10  # Increase offset for the next batch
+            request.session['offset'] = offset
+            request.session['fetch_count'] = fetch_count
 
             # use Django Paginator
-            paginator = Paginator(all_releases_with_images, limit)
+            paginator = Paginator(new_list, limit)
             try:
+                print(f"Page number: {page_number}")
                 page_obj = paginator.page(page_number)
             except EmptyPage:
                 page_obj = paginator.page(paginator.num_pages)
                 print(f"Page {page_number} is out of range")
+            except PageNotAnInteger:
+                page_obj = paginator.page(paginator.num_pages)
+                print(f"Page number is not an integer, default to page 1")
             # return the response
             response_data = {
                 'releases': list(page_obj),
@@ -217,6 +207,7 @@ class CountrySearchView(APIView):
             print(f"Error: {str(e)}")
             return JsonResponse({"error": str(e)}, status=500)
 
+# for streaming response
 def generate_cover_image(release_list):
     for release in release_list:
         release_id = release['id']
@@ -241,8 +232,9 @@ def fetch_cover_image_from_release(release_id):
     try:
         result = musicbrainzngs.get_image_list(release_id)
         image_url = result["images"][0]['thumbnails']
-        print(image_url["250"])
-        return image_url.get("250", " ")                   
+        if "250" in image_url:
+            print(image_url["250"])
+            return image_url.get("250", " ")                   
     except musicbrainzngs.WebServiceError as e:
         print("Something went wrong with the request: %s" % e)
     return []
@@ -270,12 +262,45 @@ class ArtistSearchView(APIView):
             return Response({"error": "No search term provided"}, status=400)
 
         try:
-            result = musicbrainzngs.search_artists(query, limit=10)
+            result = musicbrainzngs.search_artists(query, limit=5)
             artist_list = result.get('artist-list', [])
             for artist in artist_list:
                 artist_id = artist['id']
-                cover_images = fetch_cover_image_from_artist(artist_id)
-                artist['cover_images'] = cover_images
+                artist_name = artist['name']
+                print(f"Artist: {artist_name} ({artist_id})")
+                release_info = fetch_cover_image_from_artist(artist_id)
+                artist['release_info'] = release_info
             return JsonResponse({'artist_list': artist_list}, safe=False)
         except musicbrainzngs.WebServiceError as e:
             return Response({"error": str(e)}, status=500)
+        
+# call fetch_cover_image_from_release to fetch image url
+def fetch_cover_image_from_artist(artist_id):
+    try:
+        releases = musicbrainzngs.browse_releases(artist_id, limit=None).get('release-list', [])
+        release_list = []
+        count = 0
+        seen_titles = set()
+        for release in releases:
+            if count >= 6:
+                count = 0
+                break
+            title = release.get('title')
+            if title in seen_titles:
+                continue # skip duplicated titles
+            seen_titles.add(title) # add new titles
+            cover_art_archive = release.get('cover-art-archive', {})
+            if cover_art_archive.get('artwork') == 'true' and cover_art_archive.get('front') == 'true':
+                cover_image_url = cache_by_release(release['id'])
+                if cover_image_url:
+                    release_info = {
+                        'title': title,
+                        'cover_image': cover_image_url,
+                    }
+                    release_list.append(release_info)
+                    count += 1
+        print(release_list)
+        return release_list
+    except musicbrainzngs.WebServiceError as e:
+        print(f"No front cover artwork available for artist {artist_id}: {e}")
+        return []
