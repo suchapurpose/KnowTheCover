@@ -1,0 +1,27 @@
+{% extends "base.html" %} {% block title %} {% endblock %}
+{% block content %}
+
+
+<body>
+  <div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="row">
+      <div class="col-12">
+        {% if user.is_authenticated %}
+          <h1 class="text-center">You are already logged in</h1>
+        {% else %}
+          <h1 class="text-center">Login</h1>
+          <form method="POST" action="{% url 'login' %}" class="text-center">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" name="username" placeholder="Enter your Username" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="exampleInputPassword1" class="form-label">Password</label>
+              <input type="password" class="form-control" name="password" placeholder="Enter Your Password" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Login</button>
+            <br>
+              <a href="{% url 'register' %}" class="btn btn-link">Create an Account<

@@ -9,14 +9,7 @@ from . import views
 urlpatterns = [
 	# empty path "" = go to the base url of the website
 	# connect to views.home
-	path("home", views.home, name="home"),
-    path("todos/", views.todos, name="todos"),
     path("", views.leafletmapajax, name="leafletmap"),
-    path("searchWithID/", views.searchWithID, name="searchWithID"),
-    path("getArtistByID/", views.getArtistByID, name="getArtistByID"),
-    path("search/", views.search, name="search"), # use search_async for async (only load single cover art currently)
-    path('artists_in_country/', views.artists_in_country, name="artists_in_country"),
     path('country_search/', views.CountrySearchView.as_view(), name="country_search"),
     path('artist_search/', views.ArtistSearchView.as_view(), name="artist_search"),
-    path('fetch_cover_images/', views.fetch_cover_images, name="fetch_cover_images"),
 ]
