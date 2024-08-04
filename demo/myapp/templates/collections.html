@@ -1,0 +1,19 @@
+{% extends "base.html" %} {% block title %} {% endblock %}
+{% block content %}
+<h1>My Collection</h1>
+<a href="{% url 'add_to_collection' %}">Add New Collection</a>
+<ul>
+    {% for collection in collections %}
+        <li>
+            <h2>{{ collection.title }}</h2>
+            <img src="{{ collection.cover_image }}" alt="{{ collection.title }}">
+            <p>{{ collection.release_info }}</p>
+            <a href="{% url 'edit_collection' collection.pk %}">Edit</a>
+            <form action="{% url 'delete_collection' collection.pk %}" method="POST">
+                {% csrf_token %}
+                <button type="submit">Delete</button>
+            </form>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

@@ -2,11 +2,10 @@
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.cache import cache # for cache
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseBadRequest, StreamingHttpResponse
 import json
 from PIL import Image
-from .models import TodoItem
 import requests
 import musicbrainzngs
 
@@ -15,6 +14,11 @@ from .utils import *
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.contrib.auth.decorators import login_required
+from .models import Collection
+from .forms import CollectionForm
+
+# set user agent for musicbrainzngs
 musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
 
 # Create your views here.
@@ -23,15 +27,48 @@ musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
 # def home(request)
 #   return HttpResponse("Hello World!")
 
-def home(request):
-    return render(request, "home.html")
-
-def todos(request):
-    items = TodoItem.objects.all()
-    return render(request, "todos.html", {"todos": items})
-
 def leafletmapajax(request):
     return render(request, "leafletmapajax.html")
+
+@login_required
+def collections(request):
+    collections = Collection.objects.filter(user=request.user)
+    return render(request, "collections.html", {'collections': collections})
+
+@login_required
+def add_to_collection(request):
+    if request.method == "POST":
+        form = CollectionForm(request.POST)
+        if form.is_valid():
+            collection = form.save(commit=False)
+            collection.user = request.user
+            collection.save()
+            return redirect({'collections'})
+        else:
+            print(form.errors)
+    else:
+        form = CollectionForm()
+    return render(request, "add_to_collection.html", {'form': form})
+    
+@login_required
+def edit_collection(request, pk):
+    collection = get_object_or_404(Collection, pk=pk)
+    if request.method == "POST":
+        form = CollectionForm(request.POST, instance=collection)
+        if form.is_valid():
+            form.save()
+            return redirect('collections')
+    else:
+        form = CollectionForm(instance=collection)
+    return render(request, "edit_collection.html", {'form': form})
+
+@login_required
+def delete_collection(request, pk):
+    collection = get_object_or_404(Collection, pk=pk, user=request.user)
+    if request.method =="POST":
+        collection.delete()
+        return redirect('collections')
+    return render(request, "delete_collection.html", {'collection': collection})
 
 # MusicBrainz
 # lookup:   /<ENTITY_TYPE>/<MBID>?inc=<INC>

@@ -30,6 +30,38 @@
                 object-fit: cover;
                 margin: 5px;
             }
+            .enlarged-image-container {
+                position: absolute;
+                left: 0;
+                top: 50px;
+                z-index: 1000;
+                display: none;
+                border: 1px solid #ccc;
+                background-color: #fff;
+                padding: 10px;
+            }
+            .enlarged-image {
+                max-width: 400px;
+                max-height: 400px;
+            }
+            .overlay-content {
+                position: absolute;
+                margin: auto;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                max-width: 80%;
+                max-height: 80%;
+            }
+            .closebtn {
+                position: absolute;
+                top: 20px;
+                right: 45px;
+                font-size: 60px;
+                color: white;
+                cursor: pointer;
+            }
         </style>
     </head>
     <body>
@@ -37,7 +69,7 @@
 
         <div id="country-overlay" class="overlay">
             <h3 id="country-name">Country</h3>
-            <div id="country-info">Searching...</div>
+            <div id="country-search-results">Searching...</div>
             <div id="pagination-controls"></div>
         </div>
 
@@ -47,27 +79,65 @@
             <div id="artist-pagination-controls"></div>
         </div>
 
+        <div id="image-overlay" class="overlay">
+            <span class="closebtn" onclick="closeOverlay()">&times;</span>
+            <img class="overlay-content" id="overlay-image">
+        </div>
+
         <script>
-            function imageHover() {
-                $('.recording-list').hover(
-                    function() {
-                        const title = $(this).attr('title');
-                        const tooltip = $('<div class="tooltip"></div>').text(title).appendTo('body');
-                        $(this).data('tooltip', tooltip);
-                    },
-                    function() {
-                        $(this).data('tooltip').remove();
-                    }
-                ).mousemove(function(e) {
-                    const tooltip = $(this).data('tooltip');
-                    if (tooltip) {
-                        tooltip.css({ top: e.pageY + 10, left: e.pageX + 20 });
-                    }
+            // Click function of images-----------------------------------------------------------------------------------------------
+            function openOverlay(imageSrc) {
+                document.getElementById('overlay-image').src = imageSrc;
+                document.getElementById('image-overlay').style.display = 'block';
+            }
+        
+            function closeOverlay() {
+                document.getElementById('image-overlay').style.display = 'none';
+            }
+        
+            // Add click event listeners to navbar search results
+            document.querySelectorAll('.navbar-search-result img').forEach(img => {
+                img.addEventListener('click', function() {
+                    openOverlay(this.src);
                 });
+            });
+        
+            // Add click event listeners to country search results
+            document.querySelectorAll('.country-search-result img').forEach(img => {
+                img.addEventListener('click', function() {
+                    openOverlay(this.src);
+                });
+            });
+            // Hover function of images-----------------------------------------------------------------------------------------------
+            function imageHover() {
+                const images = document.querySelectorAll('.recording-list');
+                const enlargedImageContainer = document.createElement('div');
+                enlargedImageContainer.className = 'enlarged-image-container';
+                document.body.appendChild(enlargedImageContainer);
+
+                const enlargedImage = document.createElement('img');
+                enlargedImage.className = 'enlarged-image';
+                enlargedImageContainer.appendChild(enlargedImage);
+
+                images.forEach(img => {
+                    img.addEventListener('mouseover', function() {
+                        enlargedImage.src = this.src;
+                        enlargedImageContainer.style.display = 'block';
+                        enlargedImageContainer.style.top = '${this.getBoundingClientRect().top}px';
+                    });
+
+                    img.addEventListener('mouseout', function() {
+                        enlargedImageContainer.style.display = 'none';
+                    });
+                })
             }
 
+            document.addEventListener('DOMContentLoaded', function() {
+                imageHover();
+            });
+
             // Country Search related functions--------------------------------------------------------------------------------
-            var countryInfoElement = document.getElementById('country-info');
+            var countryInfoElement = document.getElementById('country-search-results');
 
             // Global variables to handle pagination
             let totalItems = 0;
@@ -102,14 +172,14 @@
                         }
                     },
                     error: function(xhr, status, error) {
-                        document.getElementById('country-info').innerHTML = "Error retrieving album cover images from server: " + error;
+                        document.getElementById('country-search-results').innerHTML = "Error retrieving album cover images from server: " + error;
                     }
                 });
             }
 
             // Function to update the overlay content based on the current page
             function updateOverlayContent(countryISOA2) {
-                var countryInfoElement = document.getElementById('country-info');
+                var countryInfoElement = document.getElementById('country-search-results');
                 countryInfoElement.innerHTML = ''; // Clear existing content
             
                 // Check if allData is defined and is an array
