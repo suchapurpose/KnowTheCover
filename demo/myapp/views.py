@@ -91,6 +91,7 @@ class CountrySearchView(APIView):
 
             # use Django Paginator
             paginator = Paginator(new_list, limit)
+            print(f"Limit: {limit}")
             try:
                 print(f"Page number: {page_number}")
                 page_obj = paginator.page(page_number)
@@ -103,7 +104,6 @@ class CountrySearchView(APIView):
             # return the response
             response_data = {
                 'releases': list(page_obj),
-                'total_pages': paginator.num_pages,
                 'current_page': page_obj.number,
                 'total_items': paginator.count,
             }
@@ -165,30 +165,44 @@ class ArtistSearchView(APIView):
         query = request.GET.get('query')
         if not query:
             return Response({"error": "No search term provided"}, status=400)
+        
+        page_number = request.GET.get('page', 1)
+        offset = int(request.GET.get('offset', 0))
+        print(f"offset: {offset}")
+        limit = 3
 
         try:
-            result = musicbrainzngs.search_artists(query, limit=10)
+            artist_list_for_page = []
+            result = musicbrainzngs.search_artists(query, limit=10, offset=offset)
             artist_list = result.get('artist-list', [])
+            print(f"Artists found: {len(artist_list)}")
             for artist in artist_list:
+                if len(artist_list_for_page) == limit:
+                    break
                 artist_id = artist['id']
                 artist_name = artist['name']
                 print(f"Artist: {artist_name} ({artist_id})")
                 release_info = fetch_cover_image_from_artist(artist_id)
                 artist['release_info'] = release_info
+                artist_list_for_page.append(artist)
 
-            page_number = request.GET.get('page', 1)
-            paginator = Paginator(artist_list, 3)
+            copy_list = artist_list_for_page.copy()
+            artist_list_for_page.clear()
+
+            paginator = Paginator(copy_list, limit)
+            print(f"total pages: {paginator.num_pages}")
 
             try:
                 page_obj = paginator.page(page_number)
             except PageNotAnInteger:
-                page_obj = paginator.page(1)
+                page_obj = paginator.page(paginator.num_pages)
             except EmptyPage:
                 page_obj = paginator.page(paginator.num_pages)
+                print(f"Page {page_number} is out of range")
+
 
             response_data = {
                 'artist_list': list(page_obj),
-                'total_pages': paginator.num_pages,
                 'current_page': page_obj.number,
                 'total_items': paginator.count,
             }

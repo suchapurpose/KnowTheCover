@@ -5,6 +5,7 @@
     <head>
         <title>Leaflet Map</title>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
         <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
         <style>
@@ -139,6 +140,7 @@
                 // Create button for previous page
                 const prevButton = document.createElement("button");
                 prevButton.innerHTML = "Previous";
+                prevButton.className = "btn btn-primary";
                 // Disable Previous Button if on the first page
                 if (currentPage <= 1) {
                     prevButton.disabled = true;
@@ -156,6 +158,7 @@
                 // Create button for next page
                 const nextButton = document.createElement("button");
                 nextButton.innerHTML = "Next";
+                nextButton.className = "btn btn-primary";
                 nextButton.addEventListener('click', function() {
                     currentPage++;
                     fetchDataAndInitializePagination(countryISOA2, currentPage);
@@ -233,23 +236,35 @@
             });
 
             // Navbar Search related functions-------------------------------------------------------------------------------------------------------------------------------------
-            document.getElementById('navbar-search-form').addEventListener('submit', navbarSearch);
 
-            function navbarSearch(event) {
+            let artistTotalItems = 0;
+            let artistAllData = [];
+            let artistCurrentPage = 1;
+            let artistOffset = 0;
+
+            document.getElementById('navbar-search-form').addEventListener('submit', function(event) {
                 event.preventDefault();
+                artistOffset = 0;
+                navbarSearch();
+            });
+
+            function navbarSearch() {
                 let searchQuery = document.getElementById('navbar-search-input').value;
                 console.log("Search Query:", searchQuery); // Debug log
-                fetchSearchResults(searchQuery);
+                fetchSearchResults(searchQuery, artistCurrentPage, artistOffset);
             }
 
-            function fetchSearchResults(query) {
+            function fetchSearchResults(query, page, offset) {
                 $.ajax({
                     url: "{% url 'artist_search' %}",
-                    data: { query: query },
+                    data: { query: query, page: artistCurrentPage, offset: artistOffset },
                     method: "GET",
                     success: function(data) {
                         document.getElementById('artist-search-input').textContent = "Searching for " + query;
                         console.log("Search Results:", data); // Debug log
+                        artistAllData = data.artist_list;
+                        artistTotalItems = data.total_items;
+                        data.current_page = artistCurrentPage;
                         displayArtists(data);
                     },
                     error: function(xhr, status, error) {
@@ -261,11 +276,13 @@
             function displayArtists(data) {
                 const artistListContainer = document.getElementById('artist-search-results');
                 artistListContainer.innerHTML = ''; // Clear existing content
+
                 if (Array.isArray(data.artist_list) && data.artist_list.length > 0) {
                     data.artist_list.forEach(artist => {
                         console.log(artist); // Debug log
                         let artistDiv = document.createElement('div');
                         artistDiv.textContent = artist.name;
+
                         if (Array.isArray(artist.release_info)) {
                             if (artist.release_info.length == 0) {
                                 let noCoverText = document.createElement('p');
@@ -289,6 +306,39 @@
                 document.getElementById('country-overlay').style.display = 'none';
                 document.getElementById('artist-overlay').style.display = 'block';
                 imageHover();
+                updateArtistPaginationControls();
+            }
+
+            function updateArtistPaginationControls() {
+                const paginationElement = document.getElementById('artist-pagination-controls');
+                paginationElement.innerHTML = ' '; // Clear existing controls
+
+                // Create button for previous page
+                const prevButton = document.createElement("button");
+                prevButton.innerHTML = "Previous";
+                prevButton.className = "btn btn-primary";
+                // Disable Previous Button if on the first page
+                prevButton.disabled = artistCurrentPage <= 1;
+
+                prevButton.addEventListener('click', function() {
+                    artistCurrentPage--;
+                    artistOffset -= 3;
+                    console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
+                    fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
+                });
+                paginationElement.appendChild(prevButton);
+
+                // Create button for next page
+                const nextButton = document.createElement("button");
+                nextButton.innerHTML = "Next";
+                nextButton.className = "btn btn-primary";
+                nextButton.addEventListener('click', function() {
+                    artistCurrentPage++;
+                    artistOffset += 3;
+                    console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
+                    fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
+                });
+                paginationElement.appendChild(nextButton);
             }
         </script>
     </body>
