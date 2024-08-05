@@ -1,17 +1,56 @@
 <!--navbar.html-->
-<nav class="navbar nav-pills flex-sm-row bg-transparent fixed-top mx-auto" style="max-width: 650px;">
-  
-  <a class="nav-link ml-5" href={% url 'leafletmap' %}>CoverArtMap</a>
-  {% if user.is_authenticated %}
-    <a class="nav-link ml-5" href={% url 'collections' %}>Collections</a>
-    <a class="nav-link ml-5" href={% url 'logout' %}>Logout</a>
-  {% else %}
-    <a class="nav-link ml-5" href={% url 'login' %}>Login</a>
-  {% endif %}
-
-  <form class="form-inline my-2 my-lg-0" id="navbar-search-form">
-      {% csrf_token %}
-      <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" name="searched" id="navbar-search-input">
-      <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-  </form>
-</nav>
+<style>
+  .custom-nav-item {
+    margin-left: 5px; /* Adjust the margin as needed */
+  }
+  .navbar {
+    position: fixed;
+    top: 10px; /* Adjust the top position as needed */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(255, 255, 255, 1); /* Semi-transparent background */
+    z-index: 1000; /* Ensure it is on top */
+    border-radius: 50px; /* Rounded corners */
+    padding: 10px 20px; /* Padding around the navbar */
+    width: auto; /* Ensure the width is not stretched */
+    outline: 1px solid #000; /* Add outline to the navbar */
+  }
+  .btn-outline-success {
+    border-radius: 50px; /* Rounded corners for the search button */
+    border-color: black; /* Change border color to black */
+    color: black; /* Change text color to black */
+  }
+  .btn-outline-success:hover {
+    background-color: black; /* Change background color to black on hover */
+    color: white; /* Change text color to white on hover */
+  }
+  </style>
+  <nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+      <a class="navbar-brand mx-auto" href="{% url 'leafletmap' %}">CoverArtMap</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav mx-auto">
+          {% if user.is_authenticated %}
+            <li class="nav-item custom-nav-item">
+              <a class="nav-link" href="{% url 'collections' %}">Collections</a>
+            </li>
+            <li class="nav-item custom-nav-item">
+              <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+            </li>
+          {% else %}
+            <li class="nav-item custom-nav-item">
+              <a class="nav-link" href="{% url 'login' %}">Login</a>
+            </li>
+          {% endif %}
+        </ul>
+        <form class="form-inline my-2 my-lg-0 mx-auto" id="navbar-search-form">
+          {% csrf_token %}
+          <input class="form-control mr-sm-2" type="search" placeholder="Search for artists" aria-label="Search" name="searched" id="navbar-search-input">
+          <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+        </form>
+      </div>
+    </div>
+  </nav>

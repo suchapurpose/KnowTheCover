@@ -27,6 +27,9 @@ musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
 # def home(request)
 #   return HttpResponse("Hello World!")
 
+def home(request):
+    return render(request, "home.html")
+
 def leafletmapajax(request):
     return render(request, "leafletmapajax.html")
 
@@ -36,40 +39,18 @@ def collections(request):
     return render(request, "collections.html", {'collections': collections})
 
 @login_required
-def add_to_collection(request):
-    if request.method == "POST":
+def create_collection(request):
+    if request.method == 'POST':
         form = CollectionForm(request.POST)
         if form.is_valid():
             collection = form.save(commit=False)
             collection.user = request.user
             collection.save()
-            return redirect({'collections'})
-        else:
-            print(form.errors)
-    else:
-        form = CollectionForm()
-    return render(request, "add_to_collection.html", {'form': form})
-    
-@login_required
-def edit_collection(request, pk):
-    collection = get_object_or_404(Collection, pk=pk)
-    if request.method == "POST":
-        form = CollectionForm(request.POST, instance=collection)
-        if form.is_valid():
-            form.save()
             return redirect('collections')
     else:
-        form = CollectionForm(instance=collection)
-    return render(request, "edit_collection.html", {'form': form})
-
-@login_required
-def delete_collection(request, pk):
-    collection = get_object_or_404(Collection, pk=pk, user=request.user)
-    if request.method =="POST":
-        collection.delete()
-        return redirect('collections')
-    return render(request, "delete_collection.html", {'collection': collection})
-
+        form = CollectionForm()
+    return render(request, 'create_collection.html', {'form': form})
+    
 # MusicBrainz
 # lookup:   /<ENTITY_TYPE>/<MBID>?inc=<INC>
 # browse:   /<RESULT_ENTITY_TYPE>?<BROWSING_ENTITY_TYPE>=<MBID>&limit=<LIMIT>&offset=<OFFSET>&inc=<INC>
@@ -88,7 +69,7 @@ class CountrySearchView(APIView):
             return JsonResponse({"error": "Country parameter is missing"}, status=400)
 
         page_number = int(request.GET.get('page', 1))
-        limit = 10 # Number of releases per page
+        limit = 12 # Number of releases per page
         offset = request.session.get('offset', 0)
         fetch_count = 0
 
@@ -174,9 +155,9 @@ def fetch_cover_image_from_release(release_id):
     try:
         result = musicbrainzngs.get_image_list(release_id)
         image_url = result["images"][0]['thumbnails']
-        if "250" in image_url:
-            print(image_url["250"])
-            return image_url.get("250", " ")                   
+        if "1200" in image_url:
+            print(image_url["1200"])
+            return image_url.get("1200", " ")                   
     except musicbrainzngs.WebServiceError as e:
         print("Something went wrong with the request: %s" % e)
     return []
@@ -206,7 +187,7 @@ class ArtistSearchView(APIView):
         page_number = request.GET.get('page', 1)
         offset = int(request.GET.get('offset', 0))
         print(f"offset: {offset}")
-        limit = 3
+        limit = 2
 
         try:
             artist_list_for_page = []
@@ -256,7 +237,7 @@ def fetch_cover_image_from_artist(artist_id):
         count = 0
         seen_titles = set()
         for release in releases:
-            if count >= 6:
+            if count >= 8:
                 count = 0
                 break
             title = release.get('title')

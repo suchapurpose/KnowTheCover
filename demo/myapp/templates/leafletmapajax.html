@@ -5,7 +5,6 @@
     <head>
         <title>Leaflet Map</title>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
         <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
         <style>
@@ -13,16 +12,18 @@
             .overlay {
                 position: absolute;
                 top: 15%;
-                left: 65%;
+                right: 20px; /* Position the overlay to the right with padding */
                 z-index: 1000; /* Ensure overlay is on top of map */
-                background-color: rgba(255, 255, 255, 0.8); 
-                padding: 0px;
-                border-radius: 5px;
+                background-color: rgba(255, 255, 255, 1); /* Semi-transparent background */
+                padding: 20px; /* Padding around the overlay */
+                border-radius: 20px; /* Rounded corners */
                 box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-                width: 500px;
+                width: auto; /* Ensure the width is not stretched */
+                max-width: 33%;
                 max-height: 90vh;
                 overflow-y: auto;
-                display: none; 
+                display: none;
+                outline: 1px solid #000; /* Add outline to the overlay */
             }
             .recording-list {
                 width: 100px;
@@ -31,14 +32,17 @@
                 margin: 5px;
             }
             .enlarged-image-container {
-                position: absolute;
-                left: 0;
-                top: 50px;
+                position: fixed; /* Use fixed positioning to center the element */
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%); /* Center the element */
                 z-index: 1000;
                 display: none;
                 border: 1px solid #ccc;
                 background-color: #fff;
                 padding: 10px;
+                border-radius: 20px; /* Rounded corners */
+                outline: 1px solid #000; /* Add outline to the navbar */
             }
             .enlarged-image {
                 max-width: 400px;
@@ -62,20 +66,35 @@
                 color: white;
                 cursor: pointer;
             }
+            #toggle-overlays-btn {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1001; /* Ensure it is on top of other elements */
+                padding: 10px 20px;
+                background-color: white;
+                color: black; /* Text color */
+                border-radius: 50px; /* Rounded corners */
+                cursor: pointer;
+            }
+            #toggle-overlays-btn:hover {
+                background-color: black; /* Background color on hover */
+                color: white; /* Text color on hover */            
+            }
         </style>
     </head>
     <body>
         <div id="map"></div>
 
         <div id="country-overlay" class="overlay">
-            <h3 id="country-name">Country</h3>
-            <div id="country-search-results">Searching...</div>
+            <h3 id="country-name"></h3>
+            <div id="country-search-results"></div>
             <div id="pagination-controls"></div>
         </div>
 
         <div id="artist-overlay" class="overlay">
-            <h3 id="artist-search-input">Searching for</h3>
-            <div id="artist-search-results">Searching...</div>
+            <h3 id="artist-search-input">Click on a country or type an artist name</h3>
+            <div id="artist-search-results"></div>
             <div id="artist-pagination-controls"></div>
         </div>
 
@@ -84,7 +103,29 @@
             <img class="overlay-content" id="overlay-image">
         </div>
 
+        <button id="toggle-overlays-btn" onclick="toggleOverlays()">Toggle overlay</button>
+
         <script>
+                function toggleOverlays() {
+                var countryOverlay = document.getElementById('country-overlay');
+                var artistOverlay = document.getElementById('artist-overlay');
+
+                // Toggle the display property of the overlays
+                if (countryOverlay.style.display === 'block') {
+                    countryOverlay.style.display = 'none';
+                    artistOverlay.style.display = 'none';
+                } else {
+                    countryOverlay.style.display = 'block';
+                    artistOverlay.style.display = 'block';
+                }
+            }
+        
+            // Initially hide the overlays
+            document.addEventListener("DOMContentLoaded", function() {
+                document.getElementById('country-overlay').style.display = 'none';
+                document.getElementById('artist-overlay').style.display = 'none';
+            });
+
             // Click function of images-----------------------------------------------------------------------------------------------
             function openOverlay(imageSrc) {
                 document.getElementById('overlay-image').src = imageSrc;
@@ -210,7 +251,7 @@
                 // Create button for previous page
                 const prevButton = document.createElement("button");
                 prevButton.innerHTML = "Previous";
-                prevButton.className = "btn btn-primary";
+                prevButton.className = "btn btn-custom";
                 // Disable Previous Button if on the first page
                 if (currentPage <= 1) {
                     prevButton.disabled = true;
@@ -228,7 +269,7 @@
                 // Create button for next page
                 const nextButton = document.createElement("button");
                 nextButton.innerHTML = "Next";
-                nextButton.className = "btn btn-primary";
+                nextButton.className = "btn btn-custom";
                 nextButton.addEventListener('click', function() {
                     currentPage++;
                     fetchDataAndInitializePagination(countryISOA2, currentPage);
@@ -248,7 +289,7 @@
 
             // Map implementation-------------------------------------------------------------------------------------------------------------------
             // set initial map
-            var map = L.map('map').setView([35.677399, 139.746041], 5); 
+            var map = L.map('map').setView([40, 20], 3); 
             // Add a resize handler to the map
 
             function resizeMap() {
@@ -259,17 +300,21 @@
             map.on('resize', resizeMap);
 
             var maxBounds = L.latLngBounds(
-                L.latLng(map.getBounds()._southWest.lat, map.getBounds()._southWest.lng),
-                L.latLng(map.getBounds()._northEast.lat, map.getBounds()._northEast.lng)
+                L.latLng(-90, -180), // South-West corner
+                L.latLng(90, 180)    // North-East corner
             );
+
+            // Set the maximum bounds on the map
+            map.setMaxBounds(maxBounds);
+            map.on('drag', function() {
+                map.panInsideBounds(maxBounds, { animate: false });
+            });
 
             // add OSM tiles
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 10,
-                minZoom:2,
+                minZoom: 3,
                 attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                //noWrap: true
-                maxBounds: maxBounds,
             }).addTo(map);
 
             var countryLayer; // to hold the geojson layer
@@ -330,7 +375,7 @@
                     data: { query: query, page: artistCurrentPage, offset: artistOffset },
                     method: "GET",
                     success: function(data) {
-                        document.getElementById('artist-search-input').textContent = "Searching for " + query;
+                        document.getElementById('artist-search-input');
                         console.log("Search Results:", data); // Debug log
                         artistAllData = data.artist_list;
                         artistTotalItems = data.total_items;
@@ -386,13 +431,13 @@
                 // Create button for previous page
                 const prevButton = document.createElement("button");
                 prevButton.innerHTML = "Previous";
-                prevButton.className = "btn btn-primary";
+                prevButton.className = "btn btn-custom";
                 // Disable Previous Button if on the first page
                 prevButton.disabled = artistCurrentPage <= 1;
 
                 prevButton.addEventListener('click', function() {
                     artistCurrentPage--;
-                    artistOffset -= 3;
+                    artistOffset -= 2;
                     console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
                     fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
                 });
@@ -401,10 +446,10 @@
                 // Create button for next page
                 const nextButton = document.createElement("button");
                 nextButton.innerHTML = "Next";
-                nextButton.className = "btn btn-primary";
+                nextButton.className = "btn btn-custom";
                 nextButton.addEventListener('click', function() {
                     artistCurrentPage++;
-                    artistOffset += 3;
+                    artistOffset += 2;
                     console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
                     fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
                 });

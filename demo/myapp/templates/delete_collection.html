@@ -1,9 +1,0 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>Delete Collection</h1>
-<p>Are you sure you want to delete "{{ collection.title }}"?</p>
-<form method="POST">
-    {% csrf_token %}
-    <button type="submit">Delete</button>
-</form>
-{% endblock %}

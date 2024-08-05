@@ -13,7 +13,5 @@ urlpatterns = [
     path('country_search/', views.CountrySearchView.as_view(), name="country_search"),
     path('artist_search/', views.ArtistSearchView.as_view(), name="artist_search"),
     path('collections/', views.collections, name='collections'),
-    path('collection/add/', views.add_to_collection, name='add_to_collection'),
-    path('collection/edit/<int:pk>/', views.edit_collection, name='edit_collection'),
-    path('collection/delete/<int:pk>/', views.delete_collection, name='delete_collection'),
+    path('collections/create/', views.create_collection, name='create_collection'),
 ]
