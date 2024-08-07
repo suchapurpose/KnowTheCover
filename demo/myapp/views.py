@@ -15,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from django.contrib.auth.decorators import login_required
-from .models import Collection
+from .models import ReleaseList, Release
 from .forms import CollectionForm
 
 # set user agent for musicbrainzngs
@@ -35,7 +35,7 @@ def leafletmapajax(request):
 
 @login_required
 def collections(request):
-    collections = Collection.objects.filter(user=request.user)
+    collections = ReleaseList.objects.filter(user=request.user)
     return render(request, "collections.html", {'collections': collections})
 
 @login_required
@@ -50,6 +50,30 @@ def create_collection(request):
     else:
         form = CollectionForm()
     return render(request, 'create_collection.html', {'form': form})
+
+@login_required
+def get_user_collections(request):
+    lists = ReleaseList.objects.filter(user=request.user)
+    print(lists)
+    list_data = [{'name': list.name} for list in lists]
+    return JsonResponse({'collections': list_data})
+
+@login_required
+def add_release_to_collection(request):
+    if request.method == 'POST':
+        release_id = request.POST.get('release_id')
+        release_title = request.POST.get('release_title')
+        cover_image = request.POST.get('cover_image')
+        collection_id = request.POST.get('collection_id')
+
+        collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
+        release, created = Release.objects.get_or_create(
+            release_id=release_id,
+            defaults={'title': release_title, 'cover_image': cover_image}
+        )
+        collection.releases.add(release)
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False}, status=400)
     
 # MusicBrainz
 # lookup:   /<ENTITY_TYPE>/<MBID>?inc=<INC>

@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Collection
+from .models import ReleaseList, Release
 
 # Register your models here.
-admin.site.register(Collection)
+admin.site.register(ReleaseList)
+admin.site.register(Release)

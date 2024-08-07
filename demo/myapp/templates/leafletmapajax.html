@@ -38,7 +38,6 @@
                 transform: translate(-50%, -50%); /* Center the element */
                 z-index: 1000;
                 display: none;
-                border: 1px solid #ccc;
                 background-color: #fff;
                 padding: 10px;
                 border-radius: 20px; /* Rounded corners */
@@ -60,10 +59,10 @@
             }
             .closebtn {
                 position: absolute;
-                top: 20px;
-                right: 45px;
-                font-size: 60px;
-                color: white;
+                top: 0px;
+                right: 0px;
+                font-size: 30px;
+                color: black;
                 cursor: pointer;
             }
             #toggle-overlays-btn {
@@ -72,390 +71,498 @@
                 right: 20px;
                 z-index: 1001; /* Ensure it is on top of other elements */
                 padding: 10px 20px;
-                background-color: white;
-                color: black; /* Text color */
+                background-color: black;
+                color: white; /* Text color */
                 border-radius: 50px; /* Rounded corners */
                 cursor: pointer;
             }
             #toggle-overlays-btn:hover {
-                background-color: black; /* Background color on hover */
-                color: white; /* Text color on hover */            
+                background-color: white; /* Background color on hover */
+                color: black; /* Text color on hover */            
+            }
+            /* New styles for collection-overlay */
+            #collection-overlay {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 900px; /* Adjust the width as needed */
+                height: 600px; /* Adjust the height as needed */                
+                background-color: rgba(255, 255, 255, 1); /* Semi-transparent background */
+                z-index: 1001;
+                padding: 20px; /* Add padding if needed */
+                border-radius: 20px; /* Rounded corners */
+                display: none; /* Initially hidden */
+            }
+        
+            /* Additional styles for the content inside the overlay */
+            #collections-container {
+                padding: 20px;
+                color: white;
+                overflow-y: auto; /* Enable scrolling if content overflows */
             }
         </style>
     </head>
     <body>
         <div id="map"></div>
 
-        <div id="country-overlay" class="overlay">
-            <h3 id="country-name"></h3>
-            <div id="country-search-results"></div>
+        <div id="search-overlay" class="overlay">
+            <h3 id="search-name">Click on a country or type an artist name</h3>
+            <div id="search-results"></div>
             <div id="pagination-controls"></div>
         </div>
 
-        <div id="artist-overlay" class="overlay">
-            <h3 id="artist-search-input">Click on a country or type an artist name</h3>
-            <div id="artist-search-results"></div>
-            <div id="artist-pagination-controls"></div>
-        </div>
-
         <div id="image-overlay" class="overlay">
-            <span class="closebtn" onclick="closeOverlay()">&times;</span>
             <img class="overlay-content" id="overlay-image">
         </div>
 
-        <button id="toggle-overlays-btn" onclick="toggleOverlays()">Toggle overlay</button>
+        <button id="toggle-overlays-btn" onclick="toggleOverlay()">Toggle overlay</button>
 
-        <script>
-                function toggleOverlays() {
-                var countryOverlay = document.getElementById('country-overlay');
-                var artistOverlay = document.getElementById('artist-overlay');
-
-                // Toggle the display property of the overlays
-                if (countryOverlay.style.display === 'block') {
-                    countryOverlay.style.display = 'none';
-                    artistOverlay.style.display = 'none';
-                } else {
-                    countryOverlay.style.display = 'block';
-                    artistOverlay.style.display = 'block';
-                }
-            }
-        
-            // Initially hide the overlays
-            document.addEventListener("DOMContentLoaded", function() {
-                document.getElementById('country-overlay').style.display = 'none';
-                document.getElementById('artist-overlay').style.display = 'none';
-            });
-
-            // Click function of images-----------------------------------------------------------------------------------------------
-            function openOverlay(imageSrc) {
-                document.getElementById('overlay-image').src = imageSrc;
-                document.getElementById('image-overlay').style.display = 'block';
-            }
-        
-            function closeOverlay() {
-                document.getElementById('image-overlay').style.display = 'none';
-            }
-        
-            // Add click event listeners to navbar search results
-            document.querySelectorAll('.navbar-search-result img').forEach(img => {
-                img.addEventListener('click', function() {
-                    openOverlay(this.src);
-                });
-            });
-        
-            // Add click event listeners to country search results
-            document.querySelectorAll('.country-search-result img').forEach(img => {
-                img.addEventListener('click', function() {
-                    openOverlay(this.src);
-                });
-            });
-            // Hover function of images-----------------------------------------------------------------------------------------------
-            function imageHover() {
-                const images = document.querySelectorAll('.recording-list');
-                const enlargedImageContainer = document.createElement('div');
-                enlargedImageContainer.className = 'enlarged-image-container';
-                document.body.appendChild(enlargedImageContainer);
-
-                const enlargedImage = document.createElement('img');
-                enlargedImage.className = 'enlarged-image';
-                enlargedImageContainer.appendChild(enlargedImage);
-
-                images.forEach(img => {
-                    img.addEventListener('mouseover', function() {
-                        enlargedImage.src = this.src;
-                        enlargedImageContainer.style.display = 'block';
-                        enlargedImageContainer.style.top = '${this.getBoundingClientRect().top}px';
+        </div>
+        <div id="collection-overlay" class="overlay" style="display: none;">
+            <div class="overlay-content">
+                <span class="closebtn" onclick="closeCollectionOverlay()">&times;</span>
+                <h2>Your Collections</h2>
+                <ul id="collection-list"></ul>
+            </div>
+        </div>
+    </body>
+    <script>
+        function openCollectionOverlay(imageSrc) {
+            fetch('/collections/get_user_collections/')
+                .then(response => response.json())
+                .then(data => {
+                    const collectionOverlay = document.getElementById('collection-overlay');
+                    const collectionList = document.getElementById('collection-list');
+                    collectionList.innerHTML = '';
+    
+                    data.collections.forEach(collection => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = collection.name;
+                        listItem.dataset.collectionId = collection.id;
+                        listItem.addEventListener('click', () => {
+                            addReleaseToCollection(collection.id, imageSrc);
+                        });
+                        collectionList.appendChild(listItem);
                     });
-
-                    img.addEventListener('mouseout', function() {
-                        enlargedImageContainer.style.display = 'none';
-                    });
+    
+                    collectionOverlay.style.display = 'block';
                 })
-            }
-
-            document.addEventListener('DOMContentLoaded', function() {
-                imageHover();
-            });
-
-            // Country Search related functions--------------------------------------------------------------------------------
-            var countryInfoElement = document.getElementById('country-search-results');
-
-            // Global variables to handle pagination
-            let totalItems = 0;
-            let allData = []; // Ensure allData is an array
-            let currentCountryISOA2 = '';
-
-            // Function to fetch data and initialize pagination
-            function fetchDataAndInitializePagination(countryISOA2, page) {
-                // Ensure countryISOA2 is not undefined or null
-                if (!countryISOA2) {
-                    console.error("Country ISO A2 is required but not provided.");
-                    return;
-                }
-                $.ajax({
-                    url: "{% url 'country_search' %}",
-                    data: { ISO_A2: countryISOA2, page: page },
-                    success: function(data) {
-                        console.log(data); // Debug to see the structure of the response
-                        allData = data.releases;
-                        console.log("releases: ", allData); // Debugging
-                        totalItems = data.total_items;
-                        console.log("Total Items: ", totalItems); // Debugging
-                        data.current_page = currentPage;
-                        console.log("Current Page: ", data.current_page); // Debugging
-                        // Check if we have at least 10 cover images
-                        let coverImages = allData.filter(release => release.cover_image && release.cover_image.length > 0);
-                        if (coverImages.length < 10 && currentPage < Math.ceil(totalItems / 10) && data.total_pages < 10) {
-                            currentPage++;
-                            fetchDataAndInitializePagination(countryISOA2, currentPage);
-                        } else {
-                            updateOverlayContent(countryISOA2);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        document.getElementById('country-search-results').innerHTML = "Error retrieving album cover images from server: " + error;
-                    }
+                .catch(error => {
+                    console.error('Error fetching collections:', error);
                 });
-            }
-
-            // Function to update the overlay content based on the current page
-            function updateOverlayContent(countryISOA2) {
-                var countryInfoElement = document.getElementById('country-search-results');
-                countryInfoElement.innerHTML = ''; // Clear existing content
-            
-                // Check if allData is defined and is an array
-                if (Array.isArray(allData)) {
-                    for (let i = 0; i < allData.length; i++) {
-                        let release = allData[i];
-                        if (release.cover_image && release.cover_image.length > 0) {
-                            var coverImage = release.cover_image;
-                            var imgElement = document.createElement("img");
-                            imgElement.src = coverImage;
-                            imgElement.title = release.title;
-                            imgElement.className = "recording-list";
-                            countryInfoElement.appendChild(imgElement);
-                        }
+        }
+    
+        function addReleaseToCollection(collectionId, imageSrc) {
+            const releaseId = 'some_release_id'; // You need to get this from the clicked image or other source
+            const releaseTitle = 'some_release_title'; // You need to get this from the clicked image or other source
+    
+            fetch('/add_release/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') // Ensure you have CSRF token handling
+                },
+                body: JSON.stringify({
+                    collection_id: collectionId,
+                    release_id: releaseId,
+                    release_title: releaseTitle,
+                    cover_image: imageSrc
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Release added to collection successfully!');
+                    document.getElementById('collection-overlay').style.display = 'none';
+                } else {
+                    alert('Failed to add release to collection.');
+                }
+            });
+        }
+    
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
                     }
-                } else {
-                    console.log('allData is undefined or not an array');
                 }
-                updatePaginationControls(countryISOA2);
-                imageHover();
             }
+            return cookieValue;
+        }
 
-            // Function to update pagination controls
-            function updatePaginationControls(countryISOA2) {
-                const paginationElement = document.getElementById('pagination-controls');
-                paginationElement.innerHTML = ' '; // Clear existing controls
+        // Function to close the collection overlay
+        function closeCollectionOverlay() {
+            var collectionOverlay = document.getElementById('collection-overlay');
+            collectionOverlay.style.display = 'none';
+        }
 
-                // Create button for previous page
-                const prevButton = document.createElement("button");
-                prevButton.innerHTML = "Previous";
-                prevButton.className = "btn btn-custom";
-                // Disable Previous Button if on the first page
-                if (currentPage <= 1) {
-                    prevButton.disabled = true;
-                } else {
-                    prevButton.disabled = false;
-                }
-                prevButton.addEventListener('click', function() {
-                    if (currentPage > 1) {
-                        currentPage--;
+        // Add click event listeners to search-overlay images
+        document.querySelectorAll('.recording-list').forEach(img => {
+            img.addEventListener('click', function() {
+                openCollectionOverlay(this.src);
+            });
+        });
+
+        // toggle button function-----------------------------------------------------------------------------------------------
+            function toggleOverlay() {
+            var searchOverlay = document.getElementById('search-overlay');
+
+            // Toggle the display property of the overlays
+            if (searchOverlay.style.display === 'none' || searchOverlay.style.display === '') {
+                searchOverlay.style.display = 'block';
+            } else {
+                searchOverlay.style.display = 'none';
+            }
+        }
+
+        // Hover function of images-----------------------------------------------------------------------------------------------
+        function imageHover() {
+            const images = document.querySelectorAll('.recording-list');
+            const enlargedImageContainer = document.createElement('div');
+            enlargedImageContainer.className = 'enlarged-image-container';
+            document.body.appendChild(enlargedImageContainer);
+
+            const enlargedImage = document.createElement('img');
+            enlargedImage.className = 'enlarged-image';
+            enlargedImageContainer.appendChild(enlargedImage);
+
+            images.forEach(img => {
+                img.addEventListener('mouseover', function() {
+                    enlargedImage.src = this.src;
+                    enlargedImageContainer.style.display = 'block';
+                    enlargedImageContainer.style.top = '${this.getBoundingClientRect().top}px';
+                });
+
+                img.addEventListener('mouseout', function() {
+                    enlargedImageContainer.style.display = 'none';
+                });
+            })
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            imageHover();
+        });
+
+        // Country Search related functions--------------------------------------------------------------------------------
+        var overlayDiv = document.getElementById('search-results');
+
+        // Global variables to handle pagination
+        let totalItems = 0;
+        let allData = []; // Ensure allData is an array
+        let currentCountryISOA2 = '';
+
+        // Function to fetch data and initialize pagination
+        function fetchDataAndInitializePagination(countryISOA2, page) {
+            // Ensure countryISOA2 is not undefined or null
+            if (!countryISOA2) {
+                console.error("Country ISO A2 is required but not provided.");
+                return;
+            }
+            $.ajax({
+                url: "{% url 'country_search' %}",
+                data: { ISO_A2: countryISOA2, page: page },
+                success: function(data) {
+                    console.log(data); // Debug to see the structure of the response
+                    allData = data.releases;
+                    console.log("releases: ", allData); // Debugging
+                    totalItems = data.total_items;
+                    console.log("Total Items: ", totalItems); // Debugging
+                    data.current_page = currentPage;
+                    console.log("Current Page: ", data.current_page); // Debugging
+                    // Check if we have at least 10 cover images
+                    let coverImages = allData.filter(release => release.cover_image && release.cover_image.length > 0);
+                    if (coverImages.length < 10 && currentPage < Math.ceil(totalItems / 10) && data.total_pages < 10) {
+                        currentPage++;
                         fetchDataAndInitializePagination(countryISOA2, currentPage);
+                    } else {
+                        updateOverlayContent(countryISOA2);
                     }
-                });
-                paginationElement.appendChild(prevButton);
-
-                // Create button for next page
-                const nextButton = document.createElement("button");
-                nextButton.innerHTML = "Next";
-                nextButton.className = "btn btn-custom";
-                nextButton.addEventListener('click', function() {
-                    currentPage++;
-                    fetchDataAndInitializePagination(countryISOA2, currentPage);
-                });
-                paginationElement.appendChild(nextButton);
-            }
-
-            // Event handler for country click
-            function onCountryClick(countryName, countryISOA2) {
-                currentCountryISOA2 = countryISOA2;
-                document.getElementById('country-name').innerHTML = '<h3>' + countryName + '</h3>';
-                currentPage = 1;
-                fetchDataAndInitializePagination(countryISOA2=currentCountryISOA2, page=currentPage);
-                document.getElementById('artist-overlay').style.display = 'none';
-                document.getElementById('country-overlay').style.display = 'block';
-            }
-
-            // Map implementation-------------------------------------------------------------------------------------------------------------------
-            // set initial map
-            var map = L.map('map').setView([40, 20], 3); 
-            // Add a resize handler to the map
-
-            function resizeMap() {
-                // Resize the map to fit the browser window
-                map.fitBounds(L.latLngBounds(map.getCenter(), map.getZoom()));
-            }
-            // Call the resize function when the map is created or resized
-            map.on('resize', resizeMap);
-
-            var maxBounds = L.latLngBounds(
-                L.latLng(-90, -180), // South-West corner
-                L.latLng(90, 180)    // North-East corner
-            );
-
-            // Set the maximum bounds on the map
-            map.setMaxBounds(maxBounds);
-            map.on('drag', function() {
-                map.panInsideBounds(maxBounds, { animate: false });
+                },
+                error: function(xhr, status, error) {
+                    document.getElementById('search-results').innerHTML = "Error retrieving album cover images from server: " + error;
+                }
             });
+        }
 
-            // add OSM tiles
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 10,
-                minZoom: 3,
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            }).addTo(map);
+        // Function to update the overlay content based on the current page
+        function updateOverlayContent(countryISOA2) {
+            var overlayDiv = document.getElementById('search-results');
+            overlayDiv.innerHTML = ''; // Clear existing content
+        
+            // Check if allData is defined and is an array
+            if (Array.isArray(allData)) {
+                for (let i = 0; i < allData.length; i++) {
+                    let release = allData[i];
+                    if (release.cover_image && release.cover_image.length > 0) {
+                        var coverImage = release.cover_image;
+                        var imgElement = document.createElement("img");
+                        imgElement.src = coverImage;
+                        imgElement.title = release.title;
+                        imgElement.className = "recording-list";
+                        imgElement.addEventListener('click', function() {
+                            openCollectionOverlay();
+                        });
+                        overlayDiv.appendChild(imgElement);
+                    }
+                }
+            } else {
+                console.log('allData is undefined or not an array');
+            }
+            updatePaginationControls(countryISOA2);
+            imageHover();
+        }
 
-            var countryLayer; // to hold the geojson layer
+        // Function to update pagination controls
+        function updatePaginationControls(countryISOA2) {
+            const paginationElement = document.getElementById('pagination-controls');
+            paginationElement.innerHTML = ' '; // Clear existing controls
 
-            // Create a GeoJSON layer for the country boundaries
-            var geoJsonUrl = "{% static 'js/country_boundaries.geojson' %}";
-            // Setup the map and event listeners
-            $.getJSON(geoJsonUrl, function(countryData) {
-                var countryLayer = L.geoJSON(countryData, {
-                    style: function(feature) {
-                        return {
+            // Create button for previous page
+            const prevButton = document.createElement("button");
+            prevButton.innerHTML = "Previous";
+            prevButton.className = "btn btn-custom";
+            // Disable Previous Button if on the first page
+            if (currentPage <= 1) {
+                prevButton.disabled = true;
+            } else {
+                prevButton.disabled = false;
+            }
+            prevButton.addEventListener('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    
+                    fetchDataAndInitializePagination(countryISOA2, currentPage);
+                }
+            });
+            paginationElement.appendChild(prevButton);
+
+            // Create button for next page
+            const nextButton = document.createElement("button");
+            nextButton.innerHTML = "Next";
+            nextButton.className = "btn btn-custom";
+            nextButton.addEventListener('click', function() {
+                currentPage++;
+                fetchDataAndInitializePagination(countryISOA2, currentPage);
+            });
+            paginationElement.appendChild(nextButton);
+        }
+
+        // Event handler for country click
+        function onCountryClick(countryName, countryISOA2) {
+            currentCountryISOA2 = countryISOA2;
+            document.getElementById('search-name').innerHTML = '<h3>' + countryName + '</h3>';
+            currentPage = 1;
+            fetchDataAndInitializePagination(countryISOA2=currentCountryISOA2, page=currentPage);
+
+        }
+
+        // Map implementation-------------------------------------------------------------------------------------------------------------------
+        // set initial map
+        var map = L.map('map').setView([40, 20], 3); 
+        // Add a resize handler to the map
+
+        function resizeMap() {
+            // Resize the map to fit the browser window
+            map.fitBounds(L.latLngBounds(map.getCenter(), map.getZoom()));
+        }
+        // Call the resize function when the map is created or resized
+        map.on('resize', resizeMap);
+
+        var maxBounds = L.latLngBounds(
+            L.latLng(-90, -180), // South-West corner
+            L.latLng(90, 180)    // North-East corner
+        );
+
+        // Set the maximum bounds on the map
+        map.setMaxBounds(maxBounds);
+        map.on('drag', function() {
+            map.panInsideBounds(maxBounds, { animate: false });
+        });
+
+        // add OSM tiles
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 10,
+            minZoom: 3,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+
+        var countryLayer; // to hold the geojson layer
+
+        // Create a GeoJSON layer for the country boundaries
+        var geoJsonUrl = "{% static 'js/country_boundaries.geojson' %}";
+        // Setup the map and event listeners
+        $.getJSON(geoJsonUrl, function(countryData) {
+            var countryLayer = L.geoJSON(countryData, {
+                style: function(feature) {
+                    return {
+                        weight: 1,
+                        opacity: 0.5,
+                        color: 'transparent'
+                    }     
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.on('click', function(e) {
+                        countryLayer.resetStyle();
+                        layer.setStyle({
                             weight: 1,
                             opacity: 0.5,
-                            color: 'transparent'
-                        }     
-                    },
-                    onEachFeature: function(feature, layer) {
-                        layer.on('click', function(e) {
-                            countryLayer.resetStyle();
-                            layer.setStyle({
-                                weight: 1,
-                                opacity: 0.5,
-                                color: 'orange'
-                            });
-
-                            var countryName = feature.properties.NAME;
-                            var countryISOA2 = feature.properties.ISO_A2;
-                            console.log('Country clicked:', countryName, countryISOA2);
-                            onCountryClick(countryName=countryName, countryISOA2=countryISOA2);
+                            color: 'orange'
                         });
-                    }
-                });
-                map.addLayer(countryLayer);
-            });
 
-            // Navbar Search related functions-------------------------------------------------------------------------------------------------------------------------------------
-
-            let artistTotalItems = 0;
-            let artistAllData = [];
-            let artistCurrentPage = 1;
-            let artistOffset = 0;
-
-            document.getElementById('navbar-search-form').addEventListener('submit', function(event) {
-                event.preventDefault();
-                artistOffset = 0;
-                navbarSearch();
-            });
-
-            function navbarSearch() {
-                let searchQuery = document.getElementById('navbar-search-input').value;
-                console.log("Search Query:", searchQuery); // Debug log
-                fetchSearchResults(searchQuery, artistCurrentPage, artistOffset);
-            }
-
-            function fetchSearchResults(query, page, offset) {
-                $.ajax({
-                    url: "{% url 'artist_search' %}",
-                    data: { query: query, page: artistCurrentPage, offset: artistOffset },
-                    method: "GET",
-                    success: function(data) {
-                        document.getElementById('artist-search-input');
-                        console.log("Search Results:", data); // Debug log
-                        artistAllData = data.artist_list;
-                        artistTotalItems = data.total_items;
-                        data.current_page = artistCurrentPage;
-                        displayArtists(data);
-                    },
-                    error: function(xhr, status, error) {
-                        document.getElementById('artist-search-results').innerHTML = "Error retrieving search results:" + error;
-                    }
-                });
-            }
-
-            function displayArtists(data) {
-                const artistListContainer = document.getElementById('artist-search-results');
-                artistListContainer.innerHTML = ''; // Clear existing content
-
-                if (Array.isArray(data.artist_list) && data.artist_list.length > 0) {
-                    data.artist_list.forEach(artist => {
-                        console.log(artist); // Debug log
-                        let artistDiv = document.createElement('div');
-                        artistDiv.textContent = artist.name;
-
-                        if (Array.isArray(artist.release_info)) {
-                            if (artist.release_info.length == 0) {
-                                let noCoverText = document.createElement('p');
-                                noCoverText.textContent = "No cover images available.";
-                                artistDiv.appendChild(noCoverText);
-                            }
-                            else {
-                                artistDiv.appendChild(document.createElement('br')); // Add line break after artist name
-                                artist.release_info.forEach(release => {
-                                    let imgElement = document.createElement('img');
-                                    imgElement.src = release.cover_image;
-                                    imgElement.className = "recording-list";
-                                    imgElement.title = release.title;
-                                    artistDiv.appendChild(imgElement);
-                                });
-                            }
-                        artistListContainer.appendChild(artistDiv);
-                        }
+                        var countryName = feature.properties.NAME;
+                        var countryISOA2 = feature.properties.ISO_A2;
+                        console.log('Country clicked:', countryName, countryISOA2);
+                        onCountryClick(countryName=countryName, countryISOA2=countryISOA2);
                     });
                 }
-                document.getElementById('country-overlay').style.display = 'none';
-                document.getElementById('artist-overlay').style.display = 'block';
-                imageHover();
-                updateArtistPaginationControls();
+            });
+            map.addLayer(countryLayer);
+        });
+
+        // Navbar Search related functions-------------------------------------------------------------------------------------------------------------------------------------
+
+        let artistTotalItems = 0;
+        let artistAllData = [];
+        let artistCurrentPage = 1;
+        let artistOffset = 0;
+
+        document.getElementById('navbar-search-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            artistOffset = 0;
+            navbarSearch();
+        });
+
+        function navbarSearch() {
+            let searchQuery = document.getElementById('navbar-search-input').value;
+            console.log("Search Query:", searchQuery); // Debug log
+            fetchSearchResults(searchQuery, artistCurrentPage, artistOffset);
+        }
+
+        function fetchSearchResults(query, page, offset) {
+            $.ajax({
+                url: "{% url 'artist_search' %}",
+                data: { query: query, page: artistCurrentPage, offset: artistOffset },
+                method: "GET",
+                success: function(data) {
+                    document.getElementById('search-name');
+                    console.log("Search Results:", data); // Debug log
+                    artistAllData = data.artist_list;
+                    artistTotalItems = data.total_items;
+                    data.current_page = artistCurrentPage;
+                    displayArtists(data);
+                },
+                error: function(xhr, status, error) {
+                    document.getElementById('search-results').innerHTML = "Error retrieving search results:" + error;
+                }
+            });
+        }
+
+        function displayArtists(data) {
+            const artistListContainer = document.getElementById('search-results');
+            artistListContainer.innerHTML = ''; // Clear existing content
+
+            if (Array.isArray(data.artist_list) && data.artist_list.length > 0) {
+                data.artist_list.forEach(artist => {
+                    console.log(artist); // Debug log
+                    let overlayDiv = document.createElement('div');
+                    overlayDiv.textContent = artist.name;
+
+                    if (Array.isArray(artist.release_info)) {
+                        if (artist.release_info.length == 0) {
+                            let noCoverText = document.createElement('p');
+                            noCoverText.textContent = "No cover images available.";
+                            overlayDiv.appendChild(noCoverText);
+                        }
+                        else {
+                            overlayDiv.appendChild(document.createElement('br')); // Add line break after artist name
+                            artist.release_info.forEach(release => {
+                                let imgElement = document.createElement('img');
+                                imgElement.src = release.cover_image;
+                                imgElement.className = "recording-list";
+                                imgElement.title = release.title;
+                                imgElement.addEventListener('click', function() {
+                                    openCollectionOverlay();
+                                });
+                                overlayDiv.appendChild(imgElement);
+                            });
+                        }
+                    artistListContainer.appendChild(overlayDiv);
+                    }
+                });
             }
 
-            function updateArtistPaginationControls() {
-                const paginationElement = document.getElementById('artist-pagination-controls');
-                paginationElement.innerHTML = ' '; // Clear existing controls
+            imageHover();
+            updateArtistPaginationControls();
+        }
 
-                // Create button for previous page
-                const prevButton = document.createElement("button");
-                prevButton.innerHTML = "Previous";
-                prevButton.className = "btn btn-custom";
-                // Disable Previous Button if on the first page
-                prevButton.disabled = artistCurrentPage <= 1;
+        function updateArtistPaginationControls() {
+            const paginationElement = document.getElementById('pagination-controls');
+            paginationElement.innerHTML = ' '; // Clear existing controls
 
-                prevButton.addEventListener('click', function() {
-                    artistCurrentPage--;
-                    artistOffset -= 2;
-                    console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
-                    fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
+            // Create button for previous page
+            const prevButton = document.createElement("button");
+            prevButton.innerHTML = "Previous";
+            prevButton.className = "btn btn-custom";
+            // Disable Previous Button if on the first page
+            prevButton.disabled = artistCurrentPage <= 1;
+
+            prevButton.addEventListener('click', function() {
+                artistCurrentPage--;
+                artistOffset -= 2;
+                console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
+                fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
+            });
+            paginationElement.appendChild(prevButton);
+
+            // Create button for next page
+            const nextButton = document.createElement("button");
+            nextButton.innerHTML = "Next";
+            nextButton.className = "btn btn-custom";
+            nextButton.addEventListener('click', function() {
+                artistCurrentPage++;
+                artistOffset += 2;
+                console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
+                fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
+            });
+            paginationElement.appendChild(nextButton);
+        }
+
+        // Click function of images-----------------------------------------------------------------------------------------------
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to open the collection overlay
+            function openCollectionOverlay() {
+                var collectionOverlay = document.getElementById('collection-overlay');
+                collectionOverlay.style.display = 'block';
+    
+                // Load collections dynamically
+                $.ajax({
+                    url: '{% url "collections" %}',
+                    method: 'GET',
+                    success: function(data) {
+                        $('#collections-container').html(data);
+                    }
                 });
-                paginationElement.appendChild(prevButton);
-
-                // Create button for next page
-                const nextButton = document.createElement("button");
-                nextButton.innerHTML = "Next";
-                nextButton.className = "btn btn-custom";
-                nextButton.addEventListener('click', function() {
-                    artistCurrentPage++;
-                    artistOffset += 2;
-                    console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
-                    fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
-                });
-                paginationElement.appendChild(nextButton);
             }
-        </script>
-    </body>
+    
+            // Function to close the collection overlay
+            function closeCollectionOverlay() {
+                var collectionOverlay = document.getElementById('collection-overlay');
+                collectionOverlay.style.display = 'none';
+            }
+    
+            // Add click event listeners to search-overlay images
+            document.querySelectorAll('.recording-list').forEach(img => {
+                img.addEventListener('click', function() {
+                    openCollectionOverlay(this.src);
+                });
+            });
+        });
+    </script>
 </html>
 {% endblock %}

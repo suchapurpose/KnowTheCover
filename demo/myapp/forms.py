@@ -1,11 +1,11 @@
 from django import forms
 from django.utils.safestring import mark_safe
-from .models import Collection
+from .models import ReleaseList
 
 class CollectionForm(forms.ModelForm):
     class Meta:
-        model = Collection
-        fields = ['title']
+        model = ReleaseList
+        fields = ['name']
         labels = {
-            'title': mark_safe(''),
+            'name': mark_safe(''),
         }

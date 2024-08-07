@@ -11,8 +11,12 @@
                 <div class="card">
                     <img src="{{ collection.cover_image }}" class="card-img-top" alt="{{ collection.title }}">
                     <div class="card-body">
-                        <h5 class="card-title">{{ collection.title }}</h5>
-                        <p class="card-text">{{ collection.release_info }}</p>
+                        <h5 class="card-title">{{ collection.name }}</h5>
+                        {% if collection.releases.count == 0 %}
+                            <p class="card-text">No releases in this collection</p>
+                        {% else %}
+                            <p class="card-text">{{ collection.releases }}</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
