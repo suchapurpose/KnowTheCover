@@ -4,9 +4,6 @@ from django.core.cache import cache # for cache
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseBadRequest, StreamingHttpResponse
-import json
-from PIL import Image
-import requests
 import musicbrainzngs
 
 from .utils import *
@@ -16,7 +13,7 @@ from rest_framework.views import APIView
 
 from django.contrib.auth.decorators import login_required
 from .models import ReleaseList, Release
-from .forms import CollectionForm
+from .forms import ReleaseListForm
 
 # set user agent for musicbrainzngs
 musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
@@ -41,21 +38,22 @@ def collections(request):
 @login_required
 def create_collection(request):
     if request.method == 'POST':
-        form = CollectionForm(request.POST)
+        form = ReleaseListForm(request.POST)
         if form.is_valid():
             collection = form.save(commit=False)
             collection.user = request.user
             collection.save()
             return redirect('collections')
     else:
-        form = CollectionForm()
+        form = ReleaseListForm()
     return render(request, 'create_collection.html', {'form': form})
 
 @login_required
 def get_user_collections(request):
     lists = ReleaseList.objects.filter(user=request.user)
+
     print(lists)
-    list_data = [{'name': list.name} for list in lists]
+    list_data = [{'name': list.name, "id": list.id } for list in lists]
     return JsonResponse({'collections': list_data})
 
 @login_required
@@ -64,9 +62,9 @@ def add_release_to_collection(request):
         release_id = request.POST.get('release_id')
         release_title = request.POST.get('release_title')
         cover_image = request.POST.get('cover_image')
-        collection_id = request.POST.get('collection_id')
 
-        collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
+        collection = get_object_or_404(ReleaseList, id=ReleaseList.id, user=request.user)
+        print(f"Collection: {collection}")
         release, created = Release.objects.get_or_create(
             release_id=release_id,
             defaults={'title': release_title, 'cover_image': cover_image}

@@ -128,86 +128,7 @@
         </div>
     </body>
     <script>
-        function openCollectionOverlay(imageSrc) {
-            fetch('/collections/get_user_collections/')
-                .then(response => response.json())
-                .then(data => {
-                    const collectionOverlay = document.getElementById('collection-overlay');
-                    const collectionList = document.getElementById('collection-list');
-                    collectionList.innerHTML = '';
-    
-                    data.collections.forEach(collection => {
-                        const listItem = document.createElement('li');
-                        listItem.textContent = collection.name;
-                        listItem.dataset.collectionId = collection.id;
-                        listItem.addEventListener('click', () => {
-                            addReleaseToCollection(collection.id, imageSrc);
-                        });
-                        collectionList.appendChild(listItem);
-                    });
-    
-                    collectionOverlay.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error fetching collections:', error);
-                });
-        }
-    
-        function addReleaseToCollection(collectionId, imageSrc) {
-            const releaseId = 'some_release_id'; // You need to get this from the clicked image or other source
-            const releaseTitle = 'some_release_title'; // You need to get this from the clicked image or other source
-    
-            fetch('/add_release/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken') // Ensure you have CSRF token handling
-                },
-                body: JSON.stringify({
-                    collection_id: collectionId,
-                    release_id: releaseId,
-                    release_title: releaseTitle,
-                    cover_image: imageSrc
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Release added to collection successfully!');
-                    document.getElementById('collection-overlay').style.display = 'none';
-                } else {
-                    alert('Failed to add release to collection.');
-                }
-            });
-        }
-    
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
 
-        // Function to close the collection overlay
-        function closeCollectionOverlay() {
-            var collectionOverlay = document.getElementById('collection-overlay');
-            collectionOverlay.style.display = 'none';
-        }
-
-        // Add click event listeners to search-overlay images
-        document.querySelectorAll('.recording-list').forEach(img => {
-            img.addEventListener('click', function() {
-                openCollectionOverlay(this.src);
-            });
-        });
 
         // toggle button function-----------------------------------------------------------------------------------------------
             function toggleOverlay() {
@@ -306,7 +227,7 @@
                         imgElement.title = release.title;
                         imgElement.className = "recording-list";
                         imgElement.addEventListener('click', function() {
-                            openCollectionOverlay();
+                            openCollectionOverlay(release);
                         });
                         overlayDiv.appendChild(imgElement);
                     }
@@ -487,7 +408,7 @@
                                 imgElement.className = "recording-list";
                                 imgElement.title = release.title;
                                 imgElement.addEventListener('click', function() {
-                                    openCollectionOverlay();
+                                    openCollectionOverlay(release);
                                 });
                                 overlayDiv.appendChild(imgElement);
                             });
@@ -559,8 +480,90 @@
             // Add click event listeners to search-overlay images
             document.querySelectorAll('.recording-list').forEach(img => {
                 img.addEventListener('click', function() {
-                    openCollectionOverlay(this.src);
+                    openCollectionOverlay(relase);
                 });
+            });
+        });
+        // 
+        function openCollectionOverlay(release) {
+            fetch('/collections/get_user_collections/')
+                .then(response => response.json())
+                .then(data => {
+                    const collectionOverlay = document.getElementById('collection-overlay');
+                    const collectionList = document.getElementById('collection-list');
+                    collectionList.innerHTML = '';
+    
+                    data.collections.forEach(collection => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = collection.name;
+                        listItem.dataset.collectionId = collection.id;
+                        console.log("Collection id:", collection.id);
+                        console.log('Collection:', collection);
+                        listItem.addEventListener('click', () => {
+                            addReleaseToCollection(collection.id, release);
+                        });
+                        collectionList.appendChild(listItem);
+                    });
+    
+                    collectionOverlay.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching collections:', error);
+                });
+        }
+    
+        function addReleaseToCollection(collectionId, release) {
+            console.log('Adding release to collection:', collectionId, release);
+    
+            fetch('/add_release/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken') // Ensure you have CSRF token handling
+                },
+                body: new URLSearchParams({
+                    collection_id: collectionId,
+                    release_id: release.id,
+                    release_title: release.title,
+                    cover_image: release.cover_image
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Release added to collection successfully!');
+                    document.getElementById('collection-overlay').style.display = 'none';
+                } else {
+                    alert('Failed to add release to collection.');
+                }
+            });
+        }
+    
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Function to close the collection overlay
+        function closeCollectionOverlay() {
+            var collectionOverlay = document.getElementById('collection-overlay');
+            collectionOverlay.style.display = 'none';
+        }
+
+        // Add click event listeners to search-overlay images
+        document.querySelectorAll('.recording-list').forEach(img => {
+            img.addEventListener('click', function() {
+                openCollectionOverlay(this.src);
             });
         });
     </script>
