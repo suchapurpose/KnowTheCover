@@ -60,10 +60,15 @@ def get_user_collections(request):
 def add_release_to_collection(request):
     if request.method == 'POST':
         release_id = request.POST.get('release_id')
+        print(f"Release ID: {release_id}")
         release_title = request.POST.get('release_title')
+        print(f"Release Title: {release_title}")
         cover_image = request.POST.get('cover_image')
+        print(f"Cover Image: {cover_image}")
+        collection_id = request.POST.get('collection_id')
+        print(f"Collection ID: {collection_id}")
 
-        collection = get_object_or_404(ReleaseList, id=ReleaseList.id, user=request.user)
+        collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
         print(f"Collection: {collection}")
         release, created = Release.objects.get_or_create(
             release_id=release_id,
