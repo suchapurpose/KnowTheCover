@@ -1,5 +1,17 @@
 {% extends "base.html" %} {% block title %} {% endblock %}
 {% block content %}
+<style>
+    .card {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .releases {
+        height: 50px;
+        width: 50px;
+    }
+
+</style>
 <div class="container mt-5 pt-5"> <!-- Added pt-5 to create space for the navbar -->
     <h1 class="text-center mb-4">My Collections</h1>
     <div class="text-center mb-4">
@@ -9,13 +21,17 @@
         {% for collection in collections %}
             <div class="col-md-4 mb-4">
                 <div class="card">
-                    <img src="{{ collection.cover_image }}" class="card-img-top" alt="{{ collection.title }}">
                     <div class="card-body">
                         <h5 class="card-title">{{ collection.name }}</h5>
                         {% if collection.releases.count == 0 %}
                             <p class="card-text">No releases in this collection</p>
                         {% else %}
-                            <p class="card-text">{{ collection.releases }}</p>
+                            <p class="card-text">{{ collection.releases.count }} releases in this collection</p>
+                            <div class="releases">
+                                {% for release in collection.releases.all|slice:"5" %}
+                                    <img src="{{ release.cover_image }}" class="img-fluid" alt="{{ release.title }}" loading="lazy">
+                                {% endfor %}
+                            </div>
                         {% endif %}
                     </div>
                 </div>
