@@ -4,15 +4,57 @@
     .card {
         border-radius: 10px;
         overflow: hidden;
+        transition: transform 0.3s ease; 
+    }
+
+    .card:hover {
+        transform: scale(1.05); 
     }
 
     .releases {
-        height: 50px;
+        display: flex;
+    }
+
+    .releases img {
         width: 50px;
+        height: 50px;
+        object-fit: cover;
+        margin-right: 5px;
+    }
+    
+    .close-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(0, 0, 0, 1);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+    }
+
+    .close-btn:hover {
+        background-color: rgba(255, 255, 255, 1);
+        outline: 1px solid black;
+        color: black;
+    }
+
+    .text-black {
+        color: black !important;
+    }
+
+    a:hover {
+        text-decoration: none;
     }
 
 </style>
-<div class="container mt-5 pt-5"> <!-- Added pt-5 to create space for the navbar -->
+<div class="container mt-5 pt-5">
     <h1 class="text-center mb-4">My Collections</h1>
     <div class="text-center mb-4">
         <a href="{% url 'create_collection' %}" class="btn btn-custom">Create New Collection</a>
@@ -20,21 +62,25 @@
     <div class="row">
         {% for collection in collections %}
             <div class="col-md-4 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ collection.name }}</h5>
-                        {% if collection.releases.count == 0 %}
-                            <p class="card-text">No releases in this collection</p>
-                        {% else %}
-                            <p class="card-text">{{ collection.releases.count }} releases in this collection</p>
-                            <div class="releases">
-                                {% for release in collection.releases.all|slice:"5" %}
-                                    <img src="{{ release.cover_image }}" class="img-fluid" alt="{{ release.title }}" loading="lazy">
-                                {% endfor %}
+                    <div class="card position-relative">
+                        <button class="close-btn" onclick="location.href='{% url 'delete_collection' collection.id %}'">&times;</button>
+                        <a href="{% url 'collection_detail' collection.id %}">
+                            <div class="card-body text-black">
+                                <h5 class="card-title">{{ collection.name }}</h5>
+                                {% if collection.releases.count == 0 %}
+                                    <p class="card-text">No releases in this collection</p>
+                                {% else %}
+                                    <p class="card-text">{{ collection.releases.count }} releases in this collection</p>
+                                    <div class="releases">
+                                        {% for release in collection.releases.all|slice:"5" %}
+                                            <img src="{{ release.cover_image }}" class="img-fluid" alt="{{ release.title }}" loading="lazy">
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
-                        {% endif %}
+                        </a>
                     </div>
-                </div>
+                </a>
             </div>
         {% empty %}
             <div class="col-12">

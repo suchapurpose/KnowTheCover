@@ -77,6 +77,23 @@ def add_release_to_collection(request):
         collection.releases.add(release)
         return JsonResponse({'success': True})
     return JsonResponse({'success': False}, status=400)
+
+@login_required
+def collection_detail(request, collection_id):
+    collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
+    return render(request, 'collection_detail.html', {'collection': collection})
+
+@login_required
+def delete_collection(request, collection_id):
+    collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
+    if request.method == 'POST':
+        collection.delete()
+        return redirect('collections')
+    return render(request, 'delete_collection.html', {'collection': collection})
+
+def release_detail(request, release_id):
+    release = get_object_or_404(Release, release_id=release_id)
+    return render(request, 'release_detail.html', {'release': release})
     
 # MusicBrainz
 # lookup:   /<ENTITY_TYPE>/<MBID>?inc=<INC>
@@ -278,6 +295,7 @@ def fetch_cover_image_from_artist(artist_id):
                     release_info = {
                         'title': title,
                         'cover_image': cover_image_url,
+                        'id': release['id'],
                     }
                     release_list.append(release_info)
                     count += 1

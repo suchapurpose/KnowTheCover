@@ -5,7 +5,7 @@
     <head>
         <title>Leaflet Map</title>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-        <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>        
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
         <style>
             #map { height: 100vh; }
@@ -121,9 +121,9 @@
         </div>
         <div id="collection-overlay" class="overlay" style="display: none;">
             <div class="overlay-content">
-                <span class="closebtn" onclick="closeCollectionOverlay()">&times;</span>
                 <h2>Your Collections</h2>
-                <ul id="collection-list"></ul>
+                <ul id="collection-list" class="list-group"></ul>
+                <span class="closebtn" onclick="closeCollectionOverlay()">&times;</span>
             </div>
         </div>
     </body>
@@ -407,6 +407,7 @@
                                 imgElement.src = release.cover_image;
                                 imgElement.className = "recording-list";
                                 imgElement.title = release.title;
+                                imgElement.id = release.id;
                                 imgElement.addEventListener('click', function() {
                                     openCollectionOverlay(release);
                                 });
@@ -455,35 +456,7 @@
         }
 
         // Click function of images-----------------------------------------------------------------------------------------------
-        document.addEventListener('DOMContentLoaded', function() {
-            // Function to open the collection overlay
-            function openCollectionOverlay() {
-                var collectionOverlay = document.getElementById('collection-overlay');
-                collectionOverlay.style.display = 'block';
-    
-                // Load collections dynamically
-                $.ajax({
-                    url: '{% url "collections" %}',
-                    method: 'GET',
-                    success: function(data) {
-                        $('#collections-container').html(data);
-                    }
-                });
-            }
-    
-            // Function to close the collection overlay
-            function closeCollectionOverlay() {
-                var collectionOverlay = document.getElementById('collection-overlay');
-                collectionOverlay.style.display = 'none';
-            }
-    
-            // Add click event listeners to search-overlay images
-            document.querySelectorAll('.recording-list').forEach(img => {
-                img.addEventListener('click', function() {
-                    openCollectionOverlay(relase);
-                });
-            });
-        });
+
         // 
         function openCollectionOverlay(release) {
             fetch('/collections/get_user_collections/')
@@ -497,6 +470,7 @@
                         const listItem = document.createElement('li');
                         listItem.textContent = collection.name;
                         listItem.dataset.collectionId = collection.id;
+                        listItem.classList.add('list-group-item'); // Add Bootstrap class
                         console.log("Collection id:", collection.id);
                         console.log('Collection:', collection);
                         listItem.addEventListener('click', () => {
@@ -519,7 +493,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': getCookie('csrftoken') // Ensure you have CSRF token handling
+                    'X-CSRFToken': getCookie('csrftoken') // CSRF token handling
                 },
                 body: new URLSearchParams({
                     collection_id: collectionId,

@@ -16,4 +16,7 @@ urlpatterns = [
     path('collections/create/', views.create_collection, name='create_collection'),
     path('collections/get_user_collections/', views.get_user_collections, name='get_user_collections'),
     path('add_release/', views.add_release_to_collection, name='add_release_to_collection'),
+    path('collection/<str:collection_id>/', views.collection_detail, name='collection_detail'),
+    path('delete_collection/<str:collection_id>/', views.delete_collection, name='delete_collection'),
+    path('release/<str:release_id>/', views.release_detail, name='release_detail'),
 ]
