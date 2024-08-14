@@ -6,6 +6,7 @@ class Release(models.Model):
     title = models.CharField(max_length=255)
     cover_image = models.URLField()
     release_id = models.CharField(max_length=255, primary_key=True)
+    release_data = models.JSONField(default=dict)
 
     def __str__(self):
 	    return self.title

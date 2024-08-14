@@ -387,7 +387,7 @@
 
             if (Array.isArray(data.artist_list) && data.artist_list.length > 0) {
                 data.artist_list.forEach(artist => {
-                    console.log(artist); // Debug log
+                    console.log("Artist:", artist); // Debug log
                     let overlayDiv = document.createElement('div');
                     overlayDiv.textContent = artist.name;
 
@@ -399,6 +399,7 @@
                         }
                         else {
                             overlayDiv.appendChild(document.createElement('br')); // Add line break after artist name
+                            console.log("Releases:", artist.release_info); // Debug log
                             artist.release_info.forEach(release => {
                                 let imgElement = document.createElement('img');
                                 imgElement.src = release.cover_image;
@@ -490,14 +491,12 @@
             fetch('/add_release/', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken') // CSRF token handling
                 },
-                body: new URLSearchParams({
+                body: JSON.stringify({
                     collection_id: collectionId,
-                    release_id: release.id,
-                    release_title: release.title,
-                    cover_image: release.cover_image
+                    release: release
                 })
             })
             .then(response => response.json())
@@ -506,8 +505,11 @@
                     alert('Release added to collection successfully!');
                     document.getElementById('collection-overlay').style.display = 'none';
                 } else {
-                    alert('Failed to add release to collection.');
+                    alert('Failed to add release to collection: ' + data.error);
                 }
+            })
+            .catch(error => {
+                console.error('Error adding release to collection:', error);
             });
         }
     

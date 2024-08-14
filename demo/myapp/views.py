@@ -3,10 +3,11 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.cache import cache # for cache
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponseBadRequest, StreamingHttpResponse
+from django.http import JsonResponse
 import musicbrainzngs
 
 from .utils import *
+import json
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,6 +15,8 @@ from rest_framework.views import APIView
 from django.contrib.auth.decorators import login_required
 from .models import ReleaseList, Release
 from .forms import ReleaseListForm
+
+import logging
 
 # set user agent for musicbrainzngs
 musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
@@ -59,24 +62,33 @@ def get_user_collections(request):
 @login_required
 def add_release_to_collection(request):
     if request.method == 'POST':
-        release_id = request.POST.get('release_id')
-        print(f"Release ID: {release_id}")
-        release_title = request.POST.get('release_title')
-        print(f"Release Title: {release_title}")
-        cover_image = request.POST.get('cover_image')
-        print(f"Cover Image: {cover_image}")
-        collection_id = request.POST.get('collection_id')
-        print(f"Collection ID: {collection_id}")
+        try:
+            data = json.loads(request.body)
+            print(f"Data: {data}")
+            release_data = data.get('release', {})
+            print(f"Release data: {release_data}")
+            release_id = release_data.get('id')
+            print(f"Release ID: {release_id}")
+            collection_id = data.get('collection_id')
+            print(f"Collection ID: {collection_id}")
 
-        collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
-        print(f"Collection: {collection}")
-        release, created = Release.objects.get_or_create(
-            release_id=release_id,
-            defaults={'title': release_title, 'cover_image': cover_image}
-        )
-        collection.releases.add(release)
-        return JsonResponse({'success': True})
-    return JsonResponse({'success': False}, status=400)
+            collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
+            print(f"Collection: {collection}")
+            release, created = Release.objects.get_or_create(
+                release_id=release_id,
+                defaults={
+                    'title': release_data.get('title'), 
+                    'cover_image': release_data.get('cover_image'), 
+                    'release_data': release_data
+                }
+            )
+            collection.releases.add(release)
+            return JsonResponse({'success': True})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
 
 @login_required
 def collection_detail(request, collection_id):
@@ -97,11 +109,20 @@ def delete_release_from_collection(request, collection_id, release_id):
     release = get_object_or_404(Release, release_id=release_id)
     if request.method == 'POST':
         collection.releases.remove(release)
+        # check if the release is in other collections
+        release_in_other_collections = ReleaseList.objects.filter(releases=release).exists()
+        # if not, delete the release
+        if not release_in_other_collections:
+            release.delete()
         return redirect('collection_detail', collection_id=collection_id)
     return render(request, 'delete_release_from_collection.html', {'collection_id': collection_id, 'release_id': release_id, 'release': release})
 
+logger = logging.getLogger(__name__)
+
 def release_detail(request, release_id):
     release = get_object_or_404(Release, release_id=release_id)
+    for key, value in release.release_data.items():
+        logger.info(f"Key: {key}, Value: {value}")
     return render(request, 'release_detail.html', {'release': release})
     
 # MusicBrainz
@@ -147,7 +168,7 @@ class CountrySearchView(APIView):
                     cover_image = cache_by_release(release_id=release_id)
                     if cover_image:
                         release['cover_image'] = cover_image
-                        all_releases_with_images.append(release)
+                        all_releases_with_images.append(flatten_release_data(release))
                     if len(all_releases_with_images) == limit:
                         print(f"Fetch count: {fetch_count}")
                         break  # Stop if we have enough releases with images
@@ -182,16 +203,6 @@ class CountrySearchView(APIView):
         except Exception as e:
             print(f"Error: {str(e)}")
             return JsonResponse({"error": str(e)}, status=500)
-
-# for streaming response
-def generate_cover_image(release_list):
-    for release in release_list:
-        release_id = release['id']
-        cover_image = cache_by_release(release_id)
-        if cover_image:
-            yield f"data: {{'cover_image': cover_image}}\n\n".encode('utf-8')
-        else:
-            yield f"data: {{'cover_image': None}}\n\n".encode('utf-8')
 
 # check and cache cover images by release ID
 def cache_by_release(release_id):
@@ -253,7 +264,7 @@ class ArtistSearchView(APIView):
                 artist_id = artist['id']
                 artist_name = artist['name']
                 print(f"Artist: {artist_name} ({artist_id})")
-                release_info = fetch_cover_image_from_artist(artist_id)
+                release_info = fetch_cover_image_from_artist(artist)
                 artist['release_info'] = release_info
                 artist_list_for_page.append(artist)
 
@@ -283,33 +294,40 @@ class ArtistSearchView(APIView):
             return Response({"error": str(e)}, status=500)
         
 # call fetch_cover_image_from_release to fetch image url
-def fetch_cover_image_from_artist(artist_id):
+def fetch_cover_image_from_artist(artist):
     try:
-        releases = musicbrainzngs.browse_releases(artist_id, limit=None).get('release-list', [])
-        release_list = []
+        artist_id = artist['id']
+        print(f"Artist ID: {artist_id}")
+        releases = musicbrainzngs.search_releases(arid=artist_id, limit=None)
+        release_list =releases.get('release-list', [])
+        print(f"Releases found: {release_list}")
+        release_list_with_image = []
         count = 0
         seen_titles = set()
-        for release in releases:
+        for release in release_list:
+            print(f"Release: {release}")
             if count >= 8:
                 count = 0
                 break
+            release_id = release['id']
             title = release.get('title')
             if title in seen_titles:
                 continue # skip duplicated titles
             seen_titles.add(title) # add new titles
-            cover_art_archive = release.get('cover-art-archive', {})
-            if cover_art_archive.get('artwork') == 'true' and cover_art_archive.get('front') == 'true':
-                cover_image_url = cache_by_release(release['id'])
-                if cover_image_url:
-                    release_info = {
-                        'title': title,
-                        'cover_image': cover_image_url,
-                        'id': release['id'],
-                    }
-                    release_list.append(release_info)
-                    count += 1
-        print(release_list)
-        return release_list
+            cover_image_url = fetch_best_cover_image(release_id)
+            if cover_image_url:
+                release['cover_image'] = cover_image_url
+                release_list_with_image.append(flatten_release_data(release))
+                count += 1
+        print(f"Release list: {release_list_with_image}")
+        return release_list_with_image
     except musicbrainzngs.WebServiceError as e:
         print(f"No front cover artwork available for artist {artist_id}: {e}")
         return []
+    
+def flatten_release_data(release):
+    if 'release_data' in release:
+        for key, value in release['release_data'].items():
+            release[key] = value
+        del release['release_data']
+    return release
