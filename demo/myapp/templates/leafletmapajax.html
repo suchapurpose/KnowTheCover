@@ -80,7 +80,6 @@
                 background-color: white; /* Background color on hover */
                 color: black; /* Text color on hover */            
             }
-            /* New styles for collection-overlay */
             #collection-overlay {
                 position: fixed;
                 top: 50%;
@@ -94,8 +93,6 @@
                 border-radius: 20px; /* Rounded corners */
                 display: none; /* Initially hidden */
             }
-        
-            /* Additional styles for the content inside the overlay */
             #collections-container {
                 padding: 20px;
                 color: white;
@@ -488,6 +485,7 @@
     
         function addReleaseToCollection(collectionId, release) {
             console.log('Adding release to collection:', collectionId, release);
+            console.log('Release:', release);
     
             fetch('/add_release/', {
                 method: 'POST',

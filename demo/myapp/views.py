@@ -91,6 +91,15 @@ def delete_collection(request, collection_id):
         return redirect('collections')
     return render(request, 'delete_collection.html', {'collection': collection})
 
+@login_required
+def delete_release_from_collection(request, collection_id, release_id):
+    collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
+    release = get_object_or_404(Release, release_id=release_id)
+    if request.method == 'POST':
+        collection.releases.remove(release)
+        return redirect('collection_detail', collection_id=collection_id)
+    return render(request, 'delete_release_from_collection.html', {'collection_id': collection_id, 'release_id': release_id, 'release': release})
+
 def release_detail(request, release_id):
     release = get_object_or_404(Release, release_id=release_id)
     return render(request, 'release_detail.html', {'release': release})

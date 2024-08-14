@@ -19,4 +19,5 @@ urlpatterns = [
     path('collection/<str:collection_id>/', views.collection_detail, name='collection_detail'),
     path('delete_collection/<str:collection_id>/', views.delete_collection, name='delete_collection'),
     path('release/<str:release_id>/', views.release_detail, name='release_detail'),
+    path('delete_release_from_collection/<str:collection_id>/<str:release_id>/', views.delete_release_from_collection, name='delete_release_from_collection'),
 ]
