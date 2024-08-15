@@ -120,7 +120,40 @@ def delete_release_from_collection(request, collection_id, release_id):
 logger = logging.getLogger(__name__)
 
 def release_detail(request, release_id):
-    release = get_object_or_404(Release, release_id=release_id)
+    try:
+        release = Release.objects.get(release_id=release_id)
+    except Release.DoesNotExist:
+        if request.method == 'POST':
+            try:
+                data = json.loads(request.body)
+                print(f"Data: {data}")
+                release_data = data.get('release', {})
+                print(f"Release data: {release_data}")
+                title = release_data.get('title')
+                print(f"Title: {title}")
+                release_id = release_data.get('id')
+                print(f"Release ID: {release_id}")
+                cover_image = release_data.get('cover_image')
+                print(f"Cover image: {cover_image}")
+
+                release = Release.objects.create(
+                    release_id=release_id,
+                    title=title,
+                    cover_image=cover_image,
+                    release_data=release_data
+                )
+                print(f"Release: {release}")
+                return JsonResponse({'success': True, 'release_id': release_id})
+            except json.JSONDecodeError:
+                print("JSONDecodeError: Invalid JSON")
+                return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+            except Exception as e:
+                print(f"Exception: {str(e)}")
+                return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        else:
+            print("Error: Release not found and request method is not POST")
+            return JsonResponse({'success': False, 'error': 'Release not found'}, status=404)
+
     for key, value in release.release_data.items():
         logger.info(f"Key: {key}, Value: {value}")
     return render(request, 'release_detail.html', {'release': release})
@@ -306,9 +339,6 @@ def fetch_cover_image_from_artist(artist):
         seen_titles = set()
         for release in release_list:
             print(f"Release: {release}")
-            if count >= 8:
-                count = 0
-                break
             release_id = release['id']
             title = release.get('title')
             if title in seen_titles:
@@ -318,7 +348,6 @@ def fetch_cover_image_from_artist(artist):
             if cover_image_url:
                 release['cover_image'] = cover_image_url
                 release_list_with_image.append(flatten_release_data(release))
-                count += 1
         print(f"Release list: {release_list_with_image}")
         return release_list_with_image
     except musicbrainzngs.WebServiceError as e:

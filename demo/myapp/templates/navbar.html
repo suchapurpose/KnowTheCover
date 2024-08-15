@@ -1,57 +1,79 @@
 <!--navbar.html-->
 <style>
   .custom-nav-item {
-    margin-left: 5px; /* Adjust the margin as needed */
+    margin-left: 5px;
+    margin: 0 auto;
   }
   .navbar {
     position: fixed;
-    top: 10px; /* Adjust the top position as needed */
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 1); /* Semi-transparent background */
-    z-index: 1000; /* Ensure it is on top */
-    border-radius: 50px; /* Rounded corners */
-    padding: 10px 20px; /* Padding around the navbar */
-    width: auto; /* Ensure the width is not stretched */
-    outline: 1px solid #000; /* Add outline to the navbar */
+    background-color: rgba(255, 255, 255, 1);
+    z-index: 1000;
+    border-radius: 50px;
+    padding: 10px 20px;
+    width: auto; 
+    min-width: 220px;
+    max-width: 90%;
+    outline: 1px solid #000; 
   }
   .btn-outline-success {
-    border-radius: 50px; /* Rounded corners for the search button */
-    border-color: black; /* Change border color to black */
-    background-color: black; /* Background color on hover */
-    color: white; /* Change text color to black */
+    border-radius: 50px;
+    border-color: black;
+    background-color: black;
+    color: white;
   }
   .btn-outline-success:hover {
-    background-color: white; /* Change background color to black on hover */
-    color: black; /* Change text color to white on hover */
+    background-color: white;
+    color: black;
   }
-  </style>
-  <nav class="navbar navbar-expand-lg navbar-light">
-    <div class="container">
-      <a class="navbar-brand mx-auto" href="{% url 'leafletmap' %}">CoverArtMap</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav mx-auto">
-          {% if user.is_authenticated %}
-            <li class="nav-item custom-nav-item">
-              <a class="nav-link" href="{% url 'collections' %}">Collections</a>
-            </li>
-            <li class="nav-item custom-nav-item">
-              <a class="nav-link" href="{% url 'logout' %}">Logout</a>
-            </li>
-          {% else %}
-            <li class="nav-item custom-nav-item">
-              <a class="nav-link" href="{% url 'login' %}">Login</a>
-            </li>
-          {% endif %}
-        </ul>
-        <form class="form-inline my-2 my-lg-0 mx-auto" id="navbar-search-form">
-          {% csrf_token %}
-          <input class="form-control mr-sm-2" type="search" placeholder="Search for artists" aria-label="Search" name="searched" id="navbar-search-input">
-          <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-        </form>
-      </div>
+  .navbar-toggler {
+    margin: 0 auto;
+    border: 1px;
+  }
+  .navbar-toggler-icon {
+    width: 20px; 
+    height: 15px; 
+  }
+  .btn {
+    margin: 0 auto;
+  }
+  .form-control {
+    border-radius: 20px;
+  }
+  
+</style>
+<nav class="navbar navbar-expand-lg navbar-light">
+  <div class="container">
+    <a class="navbar-brand mx-auto" href="{% url 'leafletmap' %}">CoverArtMap</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav mx-auto">
+        {% if user.is_authenticated %}
+          <li class="nav-item custom-nav-item">
+            <a class="nav-link" href="{% url 'collections' %}">Collections</a>
+          </li>
+          <li class="nav-item custom-nav-item">
+            <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+          </li>
+        {% else %}
+          <li class="nav-item custom-nav-item">
+            <a class="nav-link" href="{% url 'login' %}">Login</a>
+          </li>
+        {% endif %}
+        {% if request.resolver_match.url_name == 'leafletmap' %}
+          <li>
+            <form class="d-flex" id="navbar-search-form" role="search">
+              {% csrf_token %}
+              <input class="form-control mr-sm-2" type="search" placeholder="Artist" aria-label="Search" name="searched" id="navbar-search-input">
+              <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
+          </li>
+        {% endif %}
+      </ul>
     </div>
-  </nav>
+  </div>
+</nav>
