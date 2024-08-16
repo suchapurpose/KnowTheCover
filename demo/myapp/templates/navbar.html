@@ -1,49 +1,4 @@
 <!--navbar.html-->
-<style>
-  .custom-nav-item {
-    margin-left: 5px;
-    margin: 0 auto;
-  }
-  .navbar {
-    position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 1);
-    z-index: 1000;
-    border-radius: 50px;
-    padding: 10px 20px;
-    width: auto; 
-    min-width: 220px;
-    max-width: 90%;
-    outline: 1px solid #000; 
-  }
-  .btn-outline-success {
-    border-radius: 50px;
-    border-color: black;
-    background-color: black;
-    color: white;
-  }
-  .btn-outline-success:hover {
-    background-color: white;
-    color: black;
-  }
-  .navbar-toggler {
-    margin: 0 auto;
-    border: 1px;
-  }
-  .navbar-toggler-icon {
-    width: 20px; 
-    height: 15px; 
-  }
-  .btn {
-    margin: 0 auto;
-  }
-  .form-control {
-    border-radius: 20px;
-  }
-  
-</style>
 <nav class="navbar navbar-expand-lg navbar-light">
   <div class="container">
     <a class="navbar-brand mx-auto" href="{% url 'leafletmap' %}">CoverArtMap</a>
@@ -69,7 +24,7 @@
             <form class="d-flex" id="navbar-search-form" role="search">
               {% csrf_token %}
               <input class="form-control mr-sm-2" type="search" placeholder="Artist" aria-label="Search" name="searched" id="navbar-search-input">
-              <button class="btn btn-outline-success" type="submit">Search</button>
+              <button class="btn-navbar-search btn-custom" type="submit">Search</button>
             </form>
           </li>
         {% endif %}

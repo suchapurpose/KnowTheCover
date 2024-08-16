@@ -31,7 +31,8 @@ def home(request):
     return render(request, "home.html")
 
 def leafletmapajax(request):
-    return render(request, "leafletmapajax.html")
+    valid_release_types = musicbrainzngs.VALID_RELEASE_TYPES
+    return render(request, "leafletmapajax.html", {'valid_release_types': valid_release_types})
 
 @login_required
 def collections(request):
@@ -122,7 +123,15 @@ logger = logging.getLogger(__name__)
 def release_detail(request, release_id):
     try:
         release = Release.objects.get(release_id=release_id)
+        print(f"Release: {release}")
+        collections = ReleaseList.objects.filter(user=request.user)
+        for key, value in release.release_data.items():
+            logger.info(f"Key: {key}, Value: {value}")
+        if release:
+            return render(request, 'release_detail.html', {'release': release, 'collections': collections})
+
     except Release.DoesNotExist:
+        release = None
         if request.method == 'POST':
             try:
                 data = json.loads(request.body)
@@ -136,13 +145,16 @@ def release_detail(request, release_id):
                 cover_image = release_data.get('cover_image')
                 print(f"Cover image: {cover_image}")
 
-                release = Release.objects.create(
+                release, created = Release.objects.get_or_create(
                     release_id=release_id,
-                    title=title,
-                    cover_image=cover_image,
-                    release_data=release_data
+                    defaults={
+                        'title': title, 
+                        'cover_image': cover_image, 
+                        'release_data': release_data
+                    }
                 )
                 print(f"Release: {release}")
+                print(f"Created: {created}")
                 return JsonResponse({'success': True, 'release_id': release_id})
             except json.JSONDecodeError:
                 print("JSONDecodeError: Invalid JSON")
@@ -153,10 +165,8 @@ def release_detail(request, release_id):
         else:
             print("Error: Release not found and request method is not POST")
             return JsonResponse({'success': False, 'error': 'Release not found'}, status=404)
-
-    for key, value in release.release_data.items():
-        logger.info(f"Key: {key}, Value: {value}")
-    return render(request, 'release_detail.html', {'release': release})
+    
+    return render(request, 'release_detail.html', {'release': release, 'collections': collections})
     
 # MusicBrainz
 # lookup:   /<ENTITY_TYPE>/<MBID>?inc=<INC>
@@ -175,9 +185,11 @@ class CountrySearchView(APIView):
         if not countryISOA2:
             return JsonResponse({"error": "Country parameter is missing"}, status=400)
 
+        selected_release_types = request.GET.get('selected_release_types', '').split(',')
         page_number = int(request.GET.get('page', 1))
         limit = 12 # Number of releases per page
         offset = request.session.get('offset', 0)
+        print(f"Offset: {offset}")
         fetch_count = 0
 
         # main function
@@ -185,7 +197,7 @@ class CountrySearchView(APIView):
             all_releases_with_images = []
             # fetch cover images for each release
             while len(all_releases_with_images) < limit:
-                result = musicbrainzngs.search_releases(country=countryISOA2, limit=100, offset=offset)
+                result = musicbrainzngs.search_releases(country=countryISOA2, limit=100, offset=offset, type=selected_release_types)
                 release_list = result.get('release-list', [])
                 print(f"Releases found: {len(release_list)}")
                 print(f"1st release: {release_list[0]}")
@@ -231,6 +243,8 @@ class CountrySearchView(APIView):
                 'releases': list(page_obj),
                 'current_page': page_obj.number,
                 'total_items': paginator.count,
+                'fetch_count': fetch_count,
+                'offset': offset,
             }
             return JsonResponse(response_data, safe=False)
         except Exception as e:
@@ -281,6 +295,7 @@ class ArtistSearchView(APIView):
         if not query:
             return Response({"error": "No search term provided"}, status=400)
         
+        selected_release_types = request.GET.get('selected_release_types', '').split(',')
         page_number = request.GET.get('page', 1)
         offset = int(request.GET.get('offset', 0))
         print(f"offset: {offset}")
@@ -297,7 +312,7 @@ class ArtistSearchView(APIView):
                 artist_id = artist['id']
                 artist_name = artist['name']
                 print(f"Artist: {artist_name} ({artist_id})")
-                release_info = fetch_cover_image_from_artist(artist)
+                release_info = fetch_cover_image_from_artist(artist, selected_release_types)
                 artist['release_info'] = release_info
                 artist_list_for_page.append(artist)
 
@@ -327,12 +342,12 @@ class ArtistSearchView(APIView):
             return Response({"error": str(e)}, status=500)
         
 # call fetch_cover_image_from_release to fetch image url
-def fetch_cover_image_from_artist(artist):
+def fetch_cover_image_from_artist(artist, types):
     try:
         artist_id = artist['id']
         print(f"Artist ID: {artist_id}")
-        releases = musicbrainzngs.search_releases(arid=artist_id, limit=None)
-        release_list =releases.get('release-list', [])
+        releases = musicbrainzngs.search_releases(arid=artist_id, limit=None, type=types)
+        release_list = releases.get('release-list', [])
         print(f"Releases found: {release_list}")
         release_list_with_image = []
         count = 0

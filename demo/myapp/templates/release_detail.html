@@ -8,8 +8,19 @@
         <img src="{{ release.cover_image }}" class="img-fluid" alt="{{ release.title }}">
     </div>
     <div class="text-center mb-4">
+        <h3>Add to Collection</h3>
+        <form id="add-to-collection-form">
+            <select id="collection-select" class="form-control mb-3 custom-dropdown">
+                {% for collection in collections %}
+                    <option value="{{ collection.id }}">{{ collection.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="btn btn-custom" onclick="addToCollection()">Add to Collection</button>
+        </form>
+    </div>
+    <div class="text-center mb-4">
         <h3>Release Detail</h3>
-        <div class="card">
+        <div class="card-release">
             <ul class="list-group text-left">
                 {% for key, value in release.release_data.items %}
                     {% if key != "cover_image" %}
@@ -26,6 +37,36 @@
     const releaseData = {{ release.release_data|safe }};
     for (const [key, value] of Object.entries(releaseData)) {
         console.log(`Key: ${key}, Value: ${value}`);
+    }
+
+    function addToCollection() {
+        const collectionId = document.getElementById("collection-select").value;
+        const release = {{ release }};
+        console.log('Adding release to collection:', collectionId, 'and ', release);
+        console.log('Release:', release);
+
+        fetch('/add_release_to_collection/', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                collection_id: collectionId,
+                release: release
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Release added to collection successfully!");
+            } else {
+                alert("Failed to add release to collection!");
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
     }
 </script>
 {% endblock %}

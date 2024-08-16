@@ -1,47 +1,6 @@
 {% extends "base.html" %}
-
 {% block title %}Collection Detail{% endblock %}
-
 {% block content %}
-<style>
-    .card {
-        border-radius: 10px;
-        overflow: hidden;
-        transition: transform 0.3s ease; /* Smooth transition for scaling */
-    }
-
-    .card:hover {
-        transform: scale(1.05); /* Scale up the card on hover */
-    }
-
-    .close-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background-color: rgba(255, 255, 255, 0.7);
-        border: none;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-    }
-
-    .close-btn:hover {
-        background-color: rgba(255, 255, 255, 1);
-    }
-
-    .text-black {
-        color: black !important;
-    }
-
-    a:hover {
-        text-decoration: none;
-    }
-
-</style>
 <div class="container mt-5 pt-5">
     <h1 class="text-center mb-4">{{ collection.name }}</h1>
     <div class="row">
