@@ -1,6 +1,6 @@
 # views.py
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.core.cache import cache # for cache
+from django.core.cache import cache
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
@@ -21,19 +21,13 @@ import logging
 # set user agent for musicbrainzngs
 musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
 
-# Create your views here.
-
-# simple hello world function
-# def home(request)
-#   return HttpResponse("Hello World!")
-
-def home(request):
-    return render(request, "home.html")
-
+# Map View ================================================================================================
 def leafletmapajax(request):
+    # fetch valid release types in MusicBrainz
     valid_release_types = musicbrainzngs.VALID_RELEASE_TYPES
     return render(request, "leafletmapajax.html", {'valid_release_types': valid_release_types})
 
+# Collection Views ========================================================================================
 @login_required
 def collections(request):
     collections = ReleaseList.objects.filter(user=request.user)
@@ -53,10 +47,21 @@ def create_collection(request):
     return render(request, 'create_collection.html', {'form': form})
 
 @login_required
+def collection_detail(request, collection_id):
+    collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
+    return render(request, 'collection_detail.html', {'collection': collection})
+
+@login_required
+def delete_collection(request, collection_id):
+    collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
+    if request.method == 'POST':
+        collection.delete()
+        return redirect('collections')
+    return render(request, 'delete_collection.html', {'collection': collection})
+
+@login_required
 def get_user_collections(request):
     lists = ReleaseList.objects.filter(user=request.user)
-
-    print(lists)
     list_data = [{'name': list.name, "id": list.id } for list in lists]
     return JsonResponse({'collections': list_data})
 
@@ -65,16 +70,11 @@ def add_release_to_collection(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            print(f"Data: {data}")
             release_data = data.get('release', {})
-            print(f"Release data: {release_data}")
             release_id = release_data.get('id')
-            print(f"Release ID: {release_id}")
             collection_id = data.get('collection_id')
-            print(f"Collection ID: {collection_id}")
 
             collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
-            print(f"Collection: {collection}")
             release, created = Release.objects.get_or_create(
                 release_id=release_id,
                 defaults={
@@ -92,19 +92,6 @@ def add_release_to_collection(request):
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
 
 @login_required
-def collection_detail(request, collection_id):
-    collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
-    return render(request, 'collection_detail.html', {'collection': collection})
-
-@login_required
-def delete_collection(request, collection_id):
-    collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
-    if request.method == 'POST':
-        collection.delete()
-        return redirect('collections')
-    return render(request, 'delete_collection.html', {'collection': collection})
-
-@login_required
 def delete_release_from_collection(request, collection_id, release_id):
     collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
     release = get_object_or_404(Release, release_id=release_id)
@@ -118,8 +105,8 @@ def delete_release_from_collection(request, collection_id, release_id):
         return redirect('collection_detail', collection_id=collection_id)
     return render(request, 'delete_release_from_collection.html', {'collection_id': collection_id, 'release_id': release_id, 'release': release})
 
+# Release Detail View ======================================================================================
 logger = logging.getLogger(__name__)
-
 def release_detail(request, release_id):
     try:
         release = Release.objects.get(release_id=release_id)
@@ -135,15 +122,10 @@ def release_detail(request, release_id):
         if request.method == 'POST':
             try:
                 data = json.loads(request.body)
-                print(f"Data: {data}")
                 release_data = data.get('release', {})
-                print(f"Release data: {release_data}")
                 title = release_data.get('title')
-                print(f"Title: {title}")
                 release_id = release_data.get('id')
-                print(f"Release ID: {release_id}")
                 cover_image = release_data.get('cover_image')
-                print(f"Cover image: {cover_image}")
 
                 release, created = Release.objects.get_or_create(
                     release_id=release_id,
@@ -153,8 +135,6 @@ def release_detail(request, release_id):
                         'release_data': release_data
                     }
                 )
-                print(f"Release: {release}")
-                print(f"Created: {created}")
                 return JsonResponse({'success': True, 'release_id': release_id})
             except json.JSONDecodeError:
                 print("JSONDecodeError: Invalid JSON")
@@ -167,37 +147,31 @@ def release_detail(request, release_id):
             return JsonResponse({'success': False, 'error': 'Release not found'}, status=404)
     
     return render(request, 'release_detail.html', {'release': release, 'collections': collections})
-    
-# MusicBrainz
-# lookup:   /<ENTITY_TYPE>/<MBID>?inc=<INC>
-# browse:   /<RESULT_ENTITY_TYPE>?<BROWSING_ENTITY_TYPE>=<MBID>&limit=<LIMIT>&offset=<OFFSET>&inc=<INC>
-# search:   /<ENTITY_TYPE>?query=<QUERY>&limit=<LIMIT>&offset=<OFFSET>
-
-# musicbrainzngs API
-# metadata and cover art by MBID   
-    
-# Country Search================================================================================================
+        
+# Country Search ================================================================================================
 class CountrySearchView(APIView):
     def get(self, request):
-        # ensure the existence of the ISO_A2 country parameter
+        # get country code from query string
         countryISOA2 = request.GET.get('ISO_A2')
-        print(f"Country ISO A2: {countryISOA2}")
         if not countryISOA2:
             return JsonResponse({"error": "Country parameter is missing"}, status=400)
 
+        # get selected release types from query string
         selected_release_types = request.GET.get('selected_release_types', '').split(',')
-        page_number = int(request.GET.get('page', 1))
         limit = 12 # Number of releases per page
         offset = request.session.get('offset', 0)
-        print(f"Offset: {offset}")
         fetch_count = 0
 
-        # main function
         try:
             all_releases_with_images = []
-            # fetch cover images for each release
             while len(all_releases_with_images) < limit:
-                result = musicbrainzngs.search_releases(country=countryISOA2, limit=100, offset=offset, type=selected_release_types)
+                # search for releases by country
+                result = musicbrainzngs.search_releases(
+                    country=countryISOA2, 
+                    limit=100, 
+                    offset=offset, 
+                    type=selected_release_types
+                )
                 release_list = result.get('release-list', [])
                 print(f"Releases found: {len(release_list)}")
                 print(f"1st release: {release_list[0]}")
@@ -226,23 +200,9 @@ class CountrySearchView(APIView):
 
             request.session['offset'] = offset
 
-            # use Django Paginator
-            paginator = Paginator(new_list, limit)
-            print(f"Limit: {limit}")
-            try:
-                print(f"Page number: {page_number}")
-                page_obj = paginator.page(page_number)
-            except EmptyPage:
-                page_obj = paginator.page(paginator.num_pages)
-                print(f"Page {page_number} is out of range")
-            except PageNotAnInteger:
-                page_obj = paginator.page(paginator.num_pages)
-                print(f"Page number is not an integer, default to page 1")
             # return the response
             response_data = {
-                'releases': list(page_obj),
-                'current_page': page_obj.number,
-                'total_items': paginator.count,
+                'releases': new_list,
                 'fetch_count': fetch_count,
                 'offset': offset,
             }
@@ -251,6 +211,7 @@ class CountrySearchView(APIView):
             print(f"Error: {str(e)}")
             return JsonResponse({"error": str(e)}, status=500)
 
+# fetch cover art =================================================================================================
 # check and cache cover images by release ID
 def cache_by_release(release_id):
     cache_key = f'cover_image_{release_id}'
@@ -264,6 +225,7 @@ def cache_by_release(release_id):
 # fetch cover art using MBID (release_id)
 def fetch_cover_image_from_release(release_id):
     try:
+        # get image list for the release
         result = musicbrainzngs.get_image_list(release_id)
         image_url = result["images"][0]['thumbnails']
         if "1200" in image_url:
@@ -288,7 +250,7 @@ def fetch_best_cover_image(release_id):
         print("Something went wrong with the request: %s" % e)
     return []
 
-# Artist Search================================================================================================
+# Artist Search ================================================================================================
 class ArtistSearchView(APIView):
     def get(self, request):
         query = request.GET.get('query')
@@ -298,11 +260,12 @@ class ArtistSearchView(APIView):
         selected_release_types = request.GET.get('selected_release_types', '').split(',')
         page_number = request.GET.get('page', 1)
         offset = int(request.GET.get('offset', 0))
-        print(f"offset: {offset}")
+        # limit per page
         limit = 2
 
         try:
             artist_list_for_page = []
+            # search for artists by keyword
             result = musicbrainzngs.search_artists(query, limit=10, offset=offset)
             artist_list = result.get('artist-list', [])
             print(f"Artists found: {len(artist_list)}")
@@ -320,7 +283,6 @@ class ArtistSearchView(APIView):
             artist_list_for_page.clear()
 
             paginator = Paginator(copy_list, limit)
-            print(f"total pages: {paginator.num_pages}")
 
             try:
                 page_obj = paginator.page(page_number)
@@ -345,30 +307,33 @@ class ArtistSearchView(APIView):
 def fetch_cover_image_from_artist(artist, types):
     try:
         artist_id = artist['id']
-        print(f"Artist ID: {artist_id}")
-        releases = musicbrainzngs.search_releases(arid=artist_id, limit=None, type=types)
-        release_list = releases.get('release-list', [])
-        print(f"Releases found: {release_list}")
-        release_list_with_image = []
-        count = 0
-        seen_titles = set()
-        for release in release_list:
-            print(f"Release: {release}")
-            release_id = release['id']
-            title = release.get('title')
-            if title in seen_titles:
-                continue # skip duplicated titles
-            seen_titles.add(title) # add new titles
-            cover_image_url = fetch_best_cover_image(release_id)
-            if cover_image_url:
-                release['cover_image'] = cover_image_url
-                release_list_with_image.append(flatten_release_data(release))
-        print(f"Release list: {release_list_with_image}")
+        cache_key = f'cover_image_{artist_id}_{types}'
+        release_list_with_image = cache.get(cache_key)
+
+        if release_list_with_image is None:
+            releases = musicbrainzngs.search_releases(arid=artist_id, limit=None, type=types)
+            release_list = releases.get('release-list', [])
+            release_list_with_image = []
+            # store releases with same title to avoid duplicates
+            seen_titles = set()
+            for release in release_list:
+                release_id = release['id']
+                title = release.get('title')
+                if title in seen_titles:
+                    continue # skip duplicated titles
+                seen_titles.add(title) # add new titles
+                cover_image_url = fetch_best_cover_image(release_id)
+                if cover_image_url:
+                    release['cover_image'] = cover_image_url
+                    release_list_with_image.append(flatten_release_data(release))
+            cache.set(cache_key, release_list_with_image, 60*15)
+
         return release_list_with_image
     except musicbrainzngs.WebServiceError as e:
         print(f"No front cover artwork available for artist {artist_id}: {e}")
         return []
     
+# literate over the keys and values in release_data
 def flatten_release_data(release):
     if 'release_data' in release:
         for key, value in release['release_data'].items():

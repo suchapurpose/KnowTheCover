@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% load custom_filters %}
 {% block title %}{{ release.title }}{% endblock %}
 {% block content %}
@@ -25,7 +26,12 @@
                 {% for key, value in release.release_data.items %}
                     {% if key != "cover_image" %}
                         <li class="list-group-item">
-                            <strong>{{ key }}:</strong> <pre>{{ value|pretty_json }}</pre>
+                            <strong>{{ key }}:</strong>
+                            {% if value|is_dict or value|is_list %}
+                                {% include "nested_list.html" with data=value %}
+                            {% else %}
+                                <pre>{{ value|pretty_json }}</pre>
+                            {% endif %}
                         </li>
                     {% endif %}
                 {% endfor %}
@@ -35,9 +41,26 @@
 </div>
 <script>
     const releaseData = {{ release.release_data|safe }};
-    for (const [key, value] of Object.entries(releaseData)) {
-        console.log(`Key: ${key}, Value: ${value}`);
+    function listNestedKeys(obj, parentKey = '') {
+        for (const [key, value] of Object.entries(obj)) {
+            const fullKey = parentKey ? `${parentKey}.${key}` : key;
+            if (typeof value === 'object' && value !== null) {
+                if (Array.isArray(value)) {
+                    console.log(`Key: ${fullKey} (Array)`);
+                    value.forEach((item, index) => {
+                        listNestedKeys(item, `${fullKey}[${index}]`);
+                    });
+                } else {
+                    console.log(`Key: ${fullKey} (Object)`);
+                    listNestedKeys(value, fullKey);
+                }
+            } else {
+                console.log(`Key: ${fullKey}, Value: ${value}`);
+            }
+        }
     }
+
+    listNestedKeys(releaseData);
 
     function addToCollection() {
         const collectionId = document.getElementById("collection-select").value;

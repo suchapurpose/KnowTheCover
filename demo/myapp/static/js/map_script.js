@@ -47,8 +47,8 @@ let totalItems = 0;
 let allData = []; // Ensure allData is an array
 let currentCountryISOA2 = '';
 
-// Function to fetch data and initialize pagination
-function fetchDataAndInitializePagination(countryISOA2, page) {
+// Function to fetch data
+function fetchData(countryISOA2) {
     // Ensure countryISOA2 is not undefined or null
     if (!countryISOA2) {
         console.error("Country ISO A2 is required but not provided.");
@@ -60,35 +60,23 @@ function fetchDataAndInitializePagination(countryISOA2, page) {
         url: countrySearchUrl,
         data: { 
             ISO_A2: countryISOA2,
-            page: page, 
             selected_release_types: selectedReleaseTypes
         },
         success: function(data) {
             console.log(data); // Debug to see the structure of the response
             allData = data.releases;
             console.log("releases: ", allData); // Debugging
-            totalItems = data.total_items;
-            console.log("Total Items: ", totalItems); // Debugging
-            data.current_page = currentPage;
-            console.log("Current Page: ", data.current_page); // Debugging
             fetchCount = data.fetch_count;
             console.log("Fetch Count: ", fetchCount); // Debugging
-            // Check if we have at least 10 cover images
-            let coverImages = allData.filter(release => release.cover_image && release.cover_image.length > 0);
-            if (coverImages.length < 10 && currentPage < Math.ceil(totalItems / 10) && data.total_pages < 10) {
-                currentPage++;
-                fetchDataAndInitializePagination(countryISOA2, currentPage);
-            } else {
-                updateOverlayContent(countryISOA2, data);
-            }
+            updateOverlayContent(countryISOA2, data);
         },
-        error: function(xhr, status, error) {
+        error: function(error) {
             document.getElementById('search-results').innerHTML = "Error retrieving album cover images from server: " + error;
         }
     });
 }
 
-// Function to update the overlay content based on the current page
+// Function to update the overlay content
 function updateOverlayContent(countryISOA2, data) {
     var overlayDiv = document.getElementById('search-results');
     overlayDiv.innerHTML = ''; // Clear existing content
@@ -147,8 +135,8 @@ function updatePaginationControls(countryISOA2, data) {
     nextButton.className = "btn btn-custom";
     nextButton.addEventListener('click', function() {
         document.getElementById('search-results').innerHTML = 'Searching for more...';
-        currentPage++;
-        fetchDataAndInitializePagination(countryISOA2, currentPage);
+
+        fetchData(countryISOA2);
     });
     paginationElement.appendChild(nextButton);
 }
@@ -157,14 +145,13 @@ function updatePaginationControls(countryISOA2, data) {
 function onCountryClick(countryName, countryISOA2) {
     currentCountryISOA2 = countryISOA2;
     document.getElementById('search-name').innerHTML = '<h3>' + 'Searching for cover art in ' + countryName + '</h3>';
-    currentPage = 1;
     document.getElementById('search-results').innerHTML = '';
     const nextBtn = document.getElementById('next-btn');
     if (nextBtn) {
         nextBtn.style.display = 'none';
     }
 
-    fetchDataAndInitializePagination(countryISOA2=currentCountryISOA2, page=currentPage);
+    fetchData(currentCountryISOA2);
 
 }
 

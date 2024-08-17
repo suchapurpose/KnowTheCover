@@ -24,11 +24,11 @@
 .card {
     border-radius: 10px;
     overflow: hidden;
-    transition: transform 0.3s ease; /* Smooth transition for scaling */
+    transition: transform 0.3s ease; 
 }
 
 .card:hover {
-    transform: scale(1.05); /* Scale up the card on hover */
+    transform: scale(1.05); 
 }
 
 .close-btn {
@@ -132,8 +132,8 @@ a:hover {
     display: none;
     background-color: #fff;
     padding: 10px;
-    border-radius: 20px; /* Rounded corners */
-    outline: 1px solid #000; /* Add outline to the navbar */
+    border-radius: 20px;
+    outline: 1px solid #000; 
 }
 .enlarged-image {
     max-width: 400px;
@@ -161,11 +161,11 @@ a:hover {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 1001; /* Ensure it is on top of other elements */
+    z-index: 1001; 
     padding: 10px 20px;
     background-color: black;
-    color: white; /* Text color */
-    border-radius: 50px; /* Rounded corners */
+    color: white; 
+    border-radius: 50px; 
     cursor: pointer;
 }
 #toggle-overlays-btn:hover {
@@ -210,7 +210,7 @@ a:hover {
     transition: transform 0.3s ease; 
 }
 .list-group-item:hover {
-    transform: scale(1.01); /* Scale up the card on hover */
+    transform: scale(1.01);
 }
 
 #search-results {
@@ -297,7 +297,20 @@ a:hover {
     transform: scale(1.02); 
 }
 
+ul.nested-list {
+    list-style-type: none;
+    padding-left: 20px;
+    margin: 0;
+}
 
+.nested-list li {
+    margin-bottom: 5px;
+}
+
+.nested-list li strong {
+    display: inline; 
+    margin-bottom: 2px; 
+}
 
 /* navbar */
 .custom-nav-item {
