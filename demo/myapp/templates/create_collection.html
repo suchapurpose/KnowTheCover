@@ -6,7 +6,7 @@
             <h1 class="text-center mb-4">Give the new collection a name</h1>
             <div class="row justify-content-center">
                 <div class="col-md-6">
-                    <form method="POST" class="d-flex flex-column align-items-center">
+                    <form id="create-collection-form" class="d-flex flex-column align-items-center">
                         {% csrf_token %}
                         <div class="mb-3">
                             <input type="text" class="form-control" name="name" required>
@@ -20,4 +20,31 @@
         </div>
     </div>
 </div>
+<script>
+    document.getElementById('create-collection-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+        fetch("{% url 'create_collection' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Accept': 'application/json',
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = data.redirect_url;
+            } else {
+                // Handle form errors
+                console.error(data.errors);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+</script>
 {% endblock %}

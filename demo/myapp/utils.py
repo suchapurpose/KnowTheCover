@@ -1,6 +1,5 @@
 # utils.py
 import musicbrainzngs # music database
-import aiohttp # to make asynchronous requests
 import asyncio 
 
 

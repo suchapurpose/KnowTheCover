@@ -4,9 +4,9 @@ from django.core.cache import cache
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
+from django.urls import reverse
 import musicbrainzngs
 
-from .utils import *
 import json
 
 from rest_framework.response import Response
@@ -41,7 +41,10 @@ def create_collection(request):
             collection = form.save(commit=False)
             collection.user = request.user
             collection.save()
-            return redirect('collections')
+            return JsonResponse({'success': True, 'redirect_url': reverse('collections')}, status=201)
+        else:
+            logger.error(form.errors)  # Log form errors
+            return JsonResponse({'success': False, 'errors': form.errors}, status=400)    
     else:
         form = ReleaseListForm()
     return render(request, 'create_collection.html', {'form': form})
@@ -111,7 +114,7 @@ def release_detail(request, release_id):
     try:
         release = Release.objects.get(release_id=release_id)
         print(f"Release: {release}")
-        collections = ReleaseList.objects.filter(user=request.user)
+        collections = ReleaseList.objects.filter(user=request.user) if request.user.is_authenticated else None
         for key, value in release.release_data.items():
             logger.info(f"Key: {key}, Value: {value}")
         if release:
@@ -207,8 +210,11 @@ class CountrySearchView(APIView):
                 'offset': offset,
             }
             return JsonResponse(response_data, safe=False)
+        except musicbrainzngs.WebServiceError as e:
+            logger.error(f"WebServiceError: {e}")
+            return JsonResponse({"error": str(e)}, status=500)
         except Exception as e:
-            print(f"Error: {str(e)}")
+            logger.error(f"Exception: {e}")
             return JsonResponse({"error": str(e)}, status=500)
 
 # fetch cover art =================================================================================================

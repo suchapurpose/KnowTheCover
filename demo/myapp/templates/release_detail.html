@@ -62,7 +62,14 @@
 
     listNestedKeys(releaseData);
 
+    const isAuthenticated = {{ is_authenticated|yesno:"true,false" }};
+    const csrfToken = "{{ csrf_token }}";
     function addToCollection() {
+        if (!isAuthenticated) {
+            window.location.href = "{% url 'login' %}?next={{ request.path }}";
+            return;
+        }
+
         const collectionId = document.getElementById("collection-select").value;
         const release = {{ release }};
         console.log('Adding release to collection:', collectionId, 'and ', release);
