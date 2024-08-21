@@ -159,8 +159,8 @@ class CountrySearchView(APIView):
         if not countryISOA2:
             return JsonResponse({"error": "Country parameter is missing"}, status=400)
 
-        # get selected release types from query string
-        selected_release_types = request.GET.get('selected_release_types', '').split(',')
+        # get selected release type from query string
+        selected_release_type = request.GET.get('selected_release_type', '').split(',')
         limit = 12 # Number of releases per page
         offset = request.session.get('offset', 0)
         fetch_count = 0
@@ -173,7 +173,7 @@ class CountrySearchView(APIView):
                     country=countryISOA2, 
                     limit=100, 
                     offset=offset, 
-                    type=selected_release_types
+                    type=selected_release_type
                 )
                 release_list = result.get('release-list', [])
                 print(f"Releases found: {len(release_list)}")
@@ -263,10 +263,9 @@ class ArtistSearchView(APIView):
         if not query:
             return Response({"error": "No search term provided"}, status=400)
         
-        selected_release_types = request.GET.get('selected_release_types', '').split(',')
+        selected_release_type = request.GET.get('selected_release_type', '').split(',')
         page_number = request.GET.get('page', 1)
         offset = int(request.GET.get('offset', 0))
-        # limit per page
         limit = 2
 
         try:
@@ -281,7 +280,7 @@ class ArtistSearchView(APIView):
                 artist_id = artist['id']
                 artist_name = artist['name']
                 print(f"Artist: {artist_name} ({artist_id})")
-                release_info = fetch_cover_image_from_artist(artist, selected_release_types)
+                release_info = fetch_cover_image_from_artist(artist, selected_release_type)
                 artist['release_info'] = release_info
                 artist_list_for_page.append(artist)
 
@@ -298,7 +297,6 @@ class ArtistSearchView(APIView):
                 page_obj = paginator.page(paginator.num_pages)
                 print(f"Page {page_number} is out of range")
 
-
             response_data = {
                 'artist_list': list(page_obj),
                 'current_page': page_obj.number,
@@ -310,24 +308,24 @@ class ArtistSearchView(APIView):
             return Response({"error": str(e)}, status=500)
         
 # call fetch_cover_image_from_release to fetch image url
-def fetch_cover_image_from_artist(artist, types):
+def fetch_cover_image_from_artist(artist, type):
     try:
         artist_id = artist['id']
-        cache_key = f'cover_image_{artist_id}_{types}'
+        cache_key = f'cover_image_{artist_id}_{type}'
         release_list_with_image = cache.get(cache_key)
 
         if release_list_with_image is None:
-            releases = musicbrainzngs.search_releases(arid=artist_id, limit=None, type=types)
+            releases = musicbrainzngs.search_releases(arid=artist_id, limit=None, type=type)
             release_list = releases.get('release-list', [])
             release_list_with_image = []
-            # store releases with same title to avoid duplicates
-            seen_titles = set()
+            # store release group id to avoid duplicates
+            seen_release_groups = set()
             for release in release_list:
                 release_id = release['id']
-                title = release.get('title')
-                if title in seen_titles:
-                    continue # skip duplicated titles
-                seen_titles.add(title) # add new titles
+                release_group = release['release-group']['id']
+                if release_group in seen_release_groups:
+                    continue # skip releases in the same release group
+                seen_release_groups.add(release_group) # add new release group
                 cover_image_url = fetch_best_cover_image(release_id)
                 if cover_image_url:
                     release['cover_image'] = cover_image_url

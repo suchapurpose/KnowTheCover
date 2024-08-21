@@ -54,16 +54,14 @@ function fetchData(countryISOA2) {
         console.error("Country ISO A2 is required but not provided.");
         return;
     }
-    var selectedReleaseTypes = getSelectedReleaseTypes();
-    console.log("Selected Release Types:", selectedReleaseTypes); // Debug log
+    var selectedReleaseType = getSelectedReleaseType();
     $.ajax({
         url: countrySearchUrl,
         data: { 
             ISO_A2: countryISOA2,
-            selected_release_types: selectedReleaseTypes
+            selected_release_type: selectedReleaseType
         },
         success: function(data) {
-            console.log(data); // Debug to see the structure of the response
             allData = data.releases;
             console.log("releases: ", allData); // Debugging
             fetchCount = data.fetch_count;
@@ -250,14 +248,14 @@ function navbarSearch() {
 }
 
 function fetchSearchResults(query, page, offset) {
-    selectedReleaseTypes = getSelectedReleaseTypes();
+    selectedReleaseType = getSelectedReleaseType();
     $.ajax({
         url: artistSearchUrl,
         data: { 
             query: query, 
             page: artistCurrentPage, 
             offset: artistOffset,
-            selected_release_types: selectedReleaseTypes
+            selected_release_type: selectedReleaseType
         },
         method: "GET",
         success: function(data) {
@@ -357,6 +355,10 @@ function updateArtistPaginationControls() {
     nextButton.innerHTML = "Next";
     nextButton.id = "next-btn";
     nextButton.className = "btn btn-custom";
+
+    // Disable Next Button if there are no more artists
+    nextButton.disabled = (artistCurrentPage * 2) >= artistTotalItems;
+
     nextButton.addEventListener('click', function() {
         document.getElementById('search-results').innerHTML = 'Searching for more...';
         artistCurrentPage++;
@@ -521,11 +523,20 @@ document.getElementById('show-checkboxes-btn').addEventListener('click', functio
     }
 });
 
-function getSelectedReleaseTypes() {
-    var checkboxes = document.querySelectorAll('input[name="release_type"]:checked');
-    var selectedReleaseTypes = [];
-    checkboxes.forEach(checkbox => {
-        selectedReleaseTypes.push(checkbox.value);
+document.querySelectorAll('input[name="release_type"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        if (this.checked) {
+            document.querySelectorAll('input[name="release_type"]').forEach(otherCheckbox => {
+                if (otherCheckbox !== this) {
+                    otherCheckbox.checked = false;
+                }
+            });
+        }
     });
-    return selectedReleaseTypes;
+});
+
+function getSelectedReleaseType() {
+    var checkbox = document.querySelector('input[name="release_type"]:checked');
+    var selectedReleaseType = checkbox ? checkbox.value : '';
+    return selectedReleaseType;
 }
