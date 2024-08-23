@@ -62,7 +62,8 @@
 
     listNestedKeys(releaseData);
 
-    const isAuthenticated = {{ is_authenticated|yesno:"true,false" }};
+    const isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+    console.log('Is authenticated:', isAuthenticated);
     const csrfToken = "{{ csrf_token }}";
     function addToCollection() {
         if (!isAuthenticated) {
@@ -71,7 +72,7 @@
         }
 
         const collectionId = document.getElementById("collection-select").value;
-        const release = {{ release }};
+        const release = {{ release.release_data|safe }};
         console.log('Adding release to collection:', collectionId, 'and ', release);
         console.log('Release:', release);
 

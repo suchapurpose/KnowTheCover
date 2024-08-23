@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from unittest.mock import patch
+from myapp.models import Release, ReleaseList
 
 class CountrySearchViewTest(TestCase):
     def setUp(self):
@@ -29,6 +30,12 @@ class CountrySearchViewTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('error', response.json())
         self.assertEqual(response.json()['error'], 'Country parameter is missing')
+    
+    def test_country_search_view_invalid_country(self):
+        response = self.client.get(self.url, {'ISO_A2': 'INVALID', 'selected_release_type': 'album'})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Invalid country code')
 
     @patch('musicbrainzngs.search_releases')
     @patch('myapp.views.fetch_cover_image_from_release')
@@ -67,3 +74,4 @@ class ArtistSearchViewTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('error', response.json())
         self.assertEqual(response.json()['error'], 'No search term provided')
+

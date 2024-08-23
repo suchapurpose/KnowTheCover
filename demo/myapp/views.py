@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 from django.contrib.auth.decorators import login_required
 from .models import ReleaseList, Release
 from .forms import ReleaseListForm
+from .utils import COUNTRY_CODES
 
 import logging
 
@@ -43,7 +44,7 @@ def create_collection(request):
             collection.save()
             return JsonResponse({'success': True, 'redirect_url': reverse('collections')}, status=201)
         else:
-            logger.error(form.errors)  # Log form errors
+            logger.error(form.errors)
             return JsonResponse({'success': False, 'errors': form.errors}, status=400)    
     else:
         form = ReleaseListForm()
@@ -75,7 +76,9 @@ def add_release_to_collection(request):
             data = json.loads(request.body)
             release_data = data.get('release', {})
             release_id = release_data.get('id')
+            print(f"Release ID: {release_id}")
             collection_id = data.get('collection_id')
+            print(f"Collection ID: {collection_id}")
 
             collection = get_object_or_404(ReleaseList, id=collection_id, user=request.user)
             release, created = Release.objects.get_or_create(
@@ -86,11 +89,14 @@ def add_release_to_collection(request):
                     'release_data': release_data
                 }
             )
+            print(f"Release: {release}")
             collection.releases.add(release)
             return JsonResponse({'success': True})
         except json.JSONDecodeError:
+            print("JSONDecodeError: Invalid JSON")
             return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
         except Exception as e:
+            print(f"Exception: {str(e)}")
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
 

@@ -9,7 +9,15 @@ class Release(models.Model):
     release_data = models.JSONField(default=dict)
 
     def __str__(self):
-	    return self.title
+        return self.title
+    
+    def to_dict(self):
+        return {
+            'id': self.release_id,
+            'title': self.title,
+            'cover_image': self.cover_image,
+            'release_data': self.release_data
+        }
 
 class ReleaseList(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
