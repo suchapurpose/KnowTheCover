@@ -164,6 +164,9 @@ class CountrySearchView(APIView):
         countryISOA2 = request.GET.get('ISO_A2')
         if not countryISOA2:
             return JsonResponse({"error": "Country parameter is missing"}, status=400)
+        
+        if countryISOA2 not in COUNTRY_CODES:
+            return JsonResponse({"error": "Invalid country code"}, status=400)
 
         # get selected release type from query string
         selected_release_type = request.GET.get('selected_release_type', '').split(',')
