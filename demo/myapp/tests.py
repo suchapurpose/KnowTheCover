@@ -173,6 +173,5 @@ class ReleaseCollectionTests(TestCase):
             content_type='application/json'
         )
 
-        # Check the response
         self.assertEqual(response.status_code, 400)
         self.assertJSONEqual(response.content.decode('utf-8'), {'success': False, 'error': 'Invalid JSON'})

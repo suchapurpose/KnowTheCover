@@ -181,38 +181,65 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 10,
     minZoom: 3,
     attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    updateWhenIdle: true,
+    keepBuffer: 2
 }).addTo(map);
 
 var countryLayer; // to hold the geojson layer
 
-// Setup the map and event listeners
-$.getJSON(geoJsonUrl, function(countryData) {
-    var countryLayer = L.geoJSON(countryData, {
-        style: function(feature) {
-            return {
-                weight: 1,
-                opacity: 0.5,
-                color: 'transparent'
-            }     
-        },
-        onEachFeature: function(feature, layer) {
-            layer.on('click', function(e) {
-                countryLayer.resetStyle();
-                layer.setStyle({
+// Function to parse TSV and convert to GeoJSON
+function tsvToGeoJSON(tsvData) {
+    const rows = d3.tsvParse(tsvData);
+    const features = rows.map(row => {
+        const geometry = JSON.parse(row.geometry);
+        delete row.geometry;
+        return {
+            type: 'Feature',
+            properties: row,
+            geometry: geometry
+        };
+    });
+    return {
+        type: 'FeatureCollection',
+        features: features
+    };
+}
+
+// Fetch the TSV file and convert it to GeoJSON
+fetch(tsvData)
+    .then(response => response.text())
+    .then(tsvData => {
+
+        const geojsonData = tsvToGeoJSON(tsvData);
+
+        // Add the GeoJSON layer to the map
+        var countryLayer = L.geoJSON(geojsonData, {
+            style: function(feature) {
+                return {
                     weight: 1,
                     opacity: 0.5,
-                    color: 'orange'
-                });
+                    color: 'transparent'
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                layer.on('click', function(e) {
+                    countryLayer.resetStyle();
+                    layer.setStyle({
+                        weight: 1,
+                        opacity: 0.5,
+                        color: 'orange'
+                    });
 
-                var countryName = feature.properties.NAME;
-                var countryISOA2 = feature.properties.ISO_A2;
-                console.log('Country clicked:', countryName, countryISOA2);
-                onCountryClick(countryName=countryName, countryISOA2=countryISOA2);
-            });
-        }
-    });
-    map.addLayer(countryLayer);
-});
+                    var countryName = feature.properties.NAME;
+                    var countryISOA2 = feature.properties.ISO_A2;
+                    console.log('Country clicked:', countryName, countryISOA2);
+                    onCountryClick(countryName=countryName, countryISOA2=countryISOA2);
+                });
+            }
+        });
+        map.addLayer(countryLayer);
+    })
+    .catch(error => console.error('Error fetching or parsing the TSV file:', error));
 
 // Navbar Search related functions-------------------------------------------------------------------------------------------------------------------------------------
 
@@ -463,9 +490,9 @@ function addReleaseToCollection(collectionId, release) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            document.getElementById('overlay-background').style.display = 'none';
             alert('Release added to collection successfully!');
             document.getElementById('collection-overlay').style.display = 'none';
-            document.getElementById('overlay-background').style.display = 'block';
         } else {
             alert('Failed to add release to collection: ' + data.error);
         }

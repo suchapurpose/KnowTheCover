@@ -1,6 +1,7 @@
 # views.py
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.cache import cache
+from django.views.decorators.gzip import gzip_page
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
@@ -23,6 +24,7 @@ import logging
 musicbrainzngs.set_useragent("CoverArtMap", "0.1", "terrylau563@mgmail.com")
 
 # Map View ================================================================================================
+@gzip_page
 def leafletmapajax(request):
     # fetch valid release types in MusicBrainz
     valid_release_types = musicbrainzngs.VALID_RELEASE_TYPES
