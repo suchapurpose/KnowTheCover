@@ -7,7 +7,7 @@ class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'password1', 'confirm_password']
-        label_suffix = ''  # Remove the colon after the label text
+        label_suffix = '' 
     
     def clean(self):
         cleaned_data = super().clean()

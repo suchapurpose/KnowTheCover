@@ -63,9 +63,7 @@ function fetchData(countryISOA2) {
         },
         success: function(data) {
             allData = data.releases;
-            console.log("releases: ", allData); // Debugging
             fetchCount = data.fetch_count;
-            console.log("Fetch Count: ", fetchCount); // Debugging
             updateOverlayContent(countryISOA2, data);
         },
         error: function(error) {
@@ -437,7 +435,7 @@ function addRelease(release) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken') // CSRF token handling
+            'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({
             release: release
@@ -565,5 +563,6 @@ document.querySelectorAll('input[name="release_type"]').forEach(checkbox => {
 function getSelectedReleaseType() {
     var checkbox = document.querySelector('input[name="release_type"]:checked');
     var selectedReleaseType = checkbox ? checkbox.value : '';
+    console.log('Selected release type:', selectedReleaseType);
     return selectedReleaseType;
 }

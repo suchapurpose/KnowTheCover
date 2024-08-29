@@ -48,12 +48,12 @@ class CountrySearchViewTest(TestCase):
 
     @patch('musicbrainzngs.search_releases')
     @patch('myapp.views.cache_by_release')
-    def test_country_search_view_server_error(self, mock_get_image_urls, mock_search_releases):
+    def test_country_search_view_server_error(self, mock_cache_by_release, mock_search_releases):
         # Mock an exception being raised by musicbrainzngs.search_releases
         mock_search_releases.side_effect = Exception('Test Exception')
         
-        # Mock the get_image_urls function to return 12 valid URLs
-        mock_get_image_urls.return_value = ['http://example.com/image.jpg'] * 12
+        # Mock the cache_by_release function to return 12 valid URLs
+        mock_cache_by_release.return_value = ['http://example.com/image.jpg'] * 12
 
         response = self.client.get(self.url, {'ISO_A2': 'US', 'selected_release_types': 'album'})
         self.assertEqual(response.status_code, 500)

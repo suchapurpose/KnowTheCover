@@ -100,10 +100,8 @@ class ReleaseCollectionTests(TestCase):
 
         # Check the response
         self.assertRedirects(response, reverse('collection_detail', args=[self.collection.id]))
-
         # Check that the release was removed from the collection
         self.assertFalse(self.collection.releases.filter(release_id=self.release.release_id).exists())
-
         # Check that the release was deleted since it is not part of any other collections
         self.assertFalse(Release.objects.filter(release_id=self.release.release_id).exists())
 
@@ -111,16 +109,12 @@ class ReleaseCollectionTests(TestCase):
         # Create another collection and add the same release to it
         another_collection = ReleaseList.objects.create(name='Another Collection', user=self.user)
         another_collection.releases.add(self.release)
-
         # Make a POST request to delete the release from the first collection
         response = self.client.post(reverse('delete_release_from_collection', args=[self.collection.id, self.release.release_id]))
-
         # Check the response
         self.assertRedirects(response, reverse('collection_detail', args=[self.collection.id]))
-
         # Check that the release was removed from the first collection
         self.assertFalse(self.collection.releases.filter(release_id=self.release.release_id).exists())
-
         # Check that the release still exists since it is part of another collection
         self.assertTrue(Release.objects.filter(release_id=self.release.release_id).exists())
 

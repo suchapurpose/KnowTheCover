@@ -171,7 +171,7 @@ class CountrySearchView(APIView):
             return JsonResponse({"error": "Invalid country code"}, status=400)
 
         # get selected release type from query string
-        selected_release_type = request.GET.get('selected_release_type', '').split(',')
+        selected_release_type = request.GET.get('selected_release_type', '')
         limit = 12 # Number of releases per page
         offset = request.session.get('offset', 0)
         fetch_count = 0
@@ -187,8 +187,6 @@ class CountrySearchView(APIView):
                     type=selected_release_type
                 )
                 release_list = result.get('release-list', [])
-                print(f"Releases found: {len(release_list)}")
-                print(f"1st release: {release_list[0]}")
 
                 if not release_list:
                     break  # if no more releases to fetch
@@ -197,20 +195,15 @@ class CountrySearchView(APIView):
                     fetch_count += 1
                     release_id = release['id']
                     release_title = release['title']
-                    print(f"Release title: {release_title}")
                     cover_image = cache_by_release(release_id=release_id)
                     if cover_image:
                         release['cover_image'] = cover_image
                         all_releases_with_images.append(flatten_release_data(release))
                     if len(all_releases_with_images) == limit:
-                        print(f"Fetch count: {fetch_count}")
                         break  # Stop if we have enough releases with images
                 offset += fetch_count
-                print(f"Offset: {offset}")
                 new_list = all_releases_with_images.copy()
             all_releases_with_images.clear() # clear the list
-            print(f"all_releases_with_images length: {len(all_releases_with_images)}")
-            print(f"new_list length: {len(new_list)}")
 
             request.session['offset'] = offset
 
@@ -306,7 +299,6 @@ class ArtistSearchView(APIView):
                 page_obj = paginator.page(paginator.num_pages)
             except EmptyPage:
                 page_obj = paginator.page(paginator.num_pages)
-                print(f"Page {page_number} is out of range")
 
             response_data = {
                 'artist_list': list(page_obj),
@@ -319,14 +311,17 @@ class ArtistSearchView(APIView):
             return Response({"error": str(e)}, status=500)
         
 # call fetch_cover_image_from_release to fetch image url
-def fetch_cover_image_from_artist(artist, type):
+def fetch_cover_image_from_artist(artist, selected_release_type):
     try:
         artist_id = artist['id']
-        cache_key = f'cover_image_{artist_id}_{type}'
+        cache_key = f'cover_image_{artist_id}_{selected_release_type}'
         release_list_with_image = cache.get(cache_key)
 
         if release_list_with_image is None:
-            releases = musicbrainzngs.search_releases(arid=artist_id, limit=None, type=type)
+            print(f"{musicbrainzngs.VALID_RELEASE_TYPES}")
+            if selected_release_type not in musicbrainzngs.VALID_RELEASE_TYPES:
+                print(f"Invalid release type: {selected_release_type}")
+            releases = musicbrainzngs.search_releases(arid=artist_id, limit=None, primarytype=selected_release_type)
             release_list = releases.get('release-list', [])
             release_list_with_image = []
             # store release group id to avoid duplicates
@@ -336,11 +331,11 @@ def fetch_cover_image_from_artist(artist, type):
                 release_group = release['release-group']['id']
                 if release_group in seen_release_groups:
                     continue # skip releases in the same release group
-                seen_release_groups.add(release_group) # add new release group
-                cover_image_url = fetch_best_cover_image(release_id)
+                cover_image_url = fetch_cover_image_from_release(release_id)
                 if cover_image_url:
                     release['cover_image'] = cover_image_url
                     release_list_with_image.append(flatten_release_data(release))
+                    seen_release_groups.add(release_group) # add new release group
             cache.set(cache_key, release_list_with_image, 60*15)
 
         return release_list_with_image
