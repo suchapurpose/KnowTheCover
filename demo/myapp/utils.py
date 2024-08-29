@@ -12,4 +12,3 @@ def load_country_codes():
     return country_codes
 # Cache the country codes to avoid loading the file multiple times
 COUNTRY_CODES = load_country_codes()
-

@@ -13,15 +13,18 @@ function toggleOverlay() {
 
 // Hover function of images-----------------------------------------------------------------------------------------------
 function imageHover() {
+    // get all images with the class 'recording-list'
     const images = document.querySelectorAll('.recording-list');
     const enlargedImageContainer = document.createElement('div');
     enlargedImageContainer.className = 'enlarged-image-container';
     document.body.appendChild(enlargedImageContainer);
 
+    // Create an image element to display the enlarged image
     const enlargedImage = document.createElement('img');
     enlargedImage.className = 'enlarged-image';
     enlargedImageContainer.appendChild(enlargedImage);
 
+    // Add event listeners to each image
     images.forEach(img => {
         img.addEventListener('mouseover', function() {
             enlargedImage.src = this.src;
@@ -42,19 +45,19 @@ document.addEventListener('DOMContentLoaded', function() {
 // Country Search related functions--------------------------------------------------------------------------------
 var overlayDiv = document.getElementById('search-results');
 
-// Global variables to handle pagination
-let totalItems = 0;
-let allData = []; // Ensure allData is an array
+let allData = [];
 let currentCountryISOA2 = '';
 
 // Function to fetch data
 function fetchData(countryISOA2) {
-    // Ensure countryISOA2 is not undefined or null
+    // ensure countryISOA2 is not undefined or null
     if (!countryISOA2) {
         console.error("Country ISO A2 is required but not provided.");
         return;
     }
+    // get the selected release type
     var selectedReleaseType = getSelectedReleaseType();
+    // make an AJAX request to the server
     $.ajax({
         url: countrySearchUrl,
         data: { 
@@ -115,12 +118,11 @@ function updateOverlayContent(countryISOA2, data) {
     } else {
         console.log('allData is undefined or not an array');
     }
-    updatePaginationControls(countryISOA2, data);
+    createNextPageButton(countryISOA2, data);
     imageHover();
 }
 
-// Function to update pagination controls
-function updatePaginationControls(countryISOA2, data) {
+function createNextPageButton(countryISOA2, data) {
     const paginationElement = document.getElementById('pagination-controls');
     paginationElement.innerHTML = ' '; // Clear existing controls
 
@@ -131,7 +133,6 @@ function updatePaginationControls(countryISOA2, data) {
     nextButton.className = "btn btn-custom";
     nextButton.addEventListener('click', function() {
         document.getElementById('search-results').innerHTML = 'Searching for more...';
-
         fetchData(countryISOA2);
     });
     paginationElement.appendChild(nextButton);
@@ -146,30 +147,31 @@ function onCountryClick(countryName, countryISOA2) {
     if (nextBtn) {
         nextBtn.style.display = 'none';
     }
-
     fetchData(currentCountryISOA2);
-
 }
 
 // Map implementation-------------------------------------------------------------------------------------------------------------------
 // set initial map
 var map = L.map('map').setView([40, 20], 3); 
-// Add a resize handler to the map
 
+// add a resize handler to the map
 function resizeMap() {
     // Resize the map to fit the browser window
     map.fitBounds(L.latLngBounds(map.getCenter(), map.getZoom()));
 }
-// Call the resize function when the map is created or resized
+
+// call the resize function when the map is created or resized
 map.on('resize', resizeMap);
 
 var maxBounds = L.latLngBounds(
-    L.latLng(-90, -180), // South-West corner
-    L.latLng(90, 180)    // North-East corner
+    L.latLng(-90, -180), // SW corner
+    L.latLng(90, 180)    // NE corner
 );
 
-// Set the maximum bounds on the map
+// set the max bounds on the map
 map.setMaxBounds(maxBounds);
+
+//avoid user to drag outside the bounds
 map.on('drag', function() {
     map.panInsideBounds(maxBounds, { animate: false });
 });
@@ -246,15 +248,16 @@ let artistAllData = [];
 let artistCurrentPage = 1;
 let artistOffset = 0;
 
+// event listener for the search form
 document.getElementById('navbar-search-form').addEventListener('submit', function(event) {
     event.preventDefault();
     artistOffset = 0;
     navbarSearch();
 });
 
+// event listener for the search button
 function navbarSearch() {
     let searchQuery = document.getElementById('navbar-search-input').value;
-    console.log("Search Query:", searchQuery); // Debug log
     if (searchQuery.length != 0) {
         document.getElementById('search-name').innerHTML = '<h3>' + 'Searching for ' + searchQuery + '</h3>';
     }
@@ -268,11 +271,10 @@ function navbarSearch() {
     if (nextBtn) {
         nextBtn.style.display = 'none';
     }
-
-    fetchSearchResults(searchQuery, artistCurrentPage, artistOffset);
+    fetchSearchResults(searchQuery);
 }
-
-function fetchSearchResults(query, page, offset) {
+// Function to fetch search results
+function fetchSearchResults(query) {
     selectedReleaseType = getSelectedReleaseType();
     $.ajax({
         url: artistSearchUrl,
@@ -285,7 +287,6 @@ function fetchSearchResults(query, page, offset) {
         method: "GET",
         success: function(data) {
             document.getElementById('search-name');
-            console.log("Search Results:", data); // Debug log
             artistAllData = data.artist_list;
             artistTotalItems = data.total_items;
             data.current_page = artistCurrentPage;
@@ -297,16 +298,17 @@ function fetchSearchResults(query, page, offset) {
     });
 }
 
+// Function to display search results
 function displayArtists(data) {
     const artistListContainer = document.getElementById('search-results');
-    artistListContainer.innerHTML = ''; // Clear existing content
+    artistListContainer.innerHTML = ''; 
 
+    // check if data is an object and has a artist_list
     if (Array.isArray(data.artist_list) && data.artist_list.length > 0) {
         data.artist_list.forEach(artist => {
-            console.log("Artist:", artist); // Debug log
             let overlayDiv = document.createElement('div');
             overlayDiv.textContent = artist.name;
-
+            // check if the artist has release_info
             if (Array.isArray(artist.release_info)) {
                 if (artist.release_info.length == 0) {
                     let noCoverText = document.createElement('p');
@@ -314,8 +316,7 @@ function displayArtists(data) {
                     overlayDiv.appendChild(noCoverText);
                 }
                 else {
-                    overlayDiv.appendChild(document.createElement('br')); // Add line break after artist name
-                    console.log("Releases:", artist.release_info); // Debug log
+                    overlayDiv.appendChild(document.createElement('br'));
                     artist.release_info.forEach(release => {
                         let imgElement = document.createElement('img');
                         imgElement.src = release.cover_image;
@@ -326,13 +327,13 @@ function displayArtists(data) {
                             addRelease(release);
                         });
 
-                        // Create a container for the image and button
+                        // create a container for the image and button
                         var container = document.createElement("div");
                         container.className = "recording-list-container";
                         container.style.position = "relative";
                         container.style.display = "inline-block";
 
-                        // Create the button element
+                        // create the 'add to collection' button element
                         var addToCollectionButton = document.createElement("button");
                         addToCollectionButton.innerHTML = "+";
                         addToCollectionButton.className = "recording-list-button";
@@ -350,27 +351,27 @@ function displayArtists(data) {
             }
         });
     }
-
     imageHover();
     updateArtistPaginationControls();
 }
 
+// function to update the pagination controls
 function updateArtistPaginationControls() {
     const paginationElement = document.getElementById('pagination-controls');
     paginationElement.innerHTML = ' '; // Clear existing controls
 
-    // Create button for previous page
+    // create button for previous page
     const prevButton = document.createElement("button");
     prevButton.innerHTML = "Previous";
     prevButton.id = "prev-btn";
     prevButton.className = "btn btn-custom prev-btn";
-    // Disable Previous Button if on the first page
+    // disable Previous Button if on the first page
     prevButton.disabled = artistCurrentPage <= 1;
 
+    // add event listener to the button
     prevButton.addEventListener('click', function() {
         artistCurrentPage--;
         artistOffset -= 2;
-        console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
         fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
     });
     paginationElement.appendChild(prevButton);
@@ -381,14 +382,11 @@ function updateArtistPaginationControls() {
     nextButton.id = "next-btn";
     nextButton.className = "btn btn-custom";
 
-    // Disable Next Button if there are no more artists
-    nextButton.disabled = (artistCurrentPage * 2) >= artistTotalItems;
-
+    // disable Next Button if on the last page
     nextButton.addEventListener('click', function() {
         document.getElementById('search-results').innerHTML = 'Searching for more...';
         artistCurrentPage++;
         artistOffset += 2;
-        console.log("Current Page:", artistCurrentPage, "Offset:", artistOffset); // Debug log
         fetchSearchResults(document.getElementById('navbar-search-input').value, artistCurrentPage, artistOffset);
     });
     paginationElement.appendChild(nextButton);
@@ -396,8 +394,9 @@ function updateArtistPaginationControls() {
 
 // Click function of images-----------------------------------------------------------------------------------------------
 
-// 
+// function to open the collection overlay
 function openCollectionOverlay(release) {
+    // fetch the user's collections from the server
     fetch('/collections/get_user_collections/')
         .then(response => response.json())
         .then(data => {
@@ -405,13 +404,12 @@ function openCollectionOverlay(release) {
             const collectionList = document.getElementById('collection-list');
             collectionList.innerHTML = '';
 
+            // list the user's collections
             data.collections.forEach(collection => {
                 const listItem = document.createElement('li');
                 listItem.textContent = collection.name;
                 listItem.dataset.collectionId = collection.id;
-                listItem.classList.add('list-group-item'); // Add Bootstrap class
-                console.log("Collection id:", collection.id);
-                console.log('Collection:', collection);
+                listItem.classList.add('list-group-item');
                 listItem.addEventListener('click', () => {
                     addReleaseToCollection(collection.id, release);
                 });
@@ -425,12 +423,11 @@ function openCollectionOverlay(release) {
         });
 }
 
+// function to add a release to the database
 function addRelease(release) {
-    console.log('Adding release:', release);
-    console.log('Release:', release);
 
     const endpoint = `/release/${release.id}/`;
-
+    // Make a POST request to the server
     fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -453,7 +450,7 @@ function addRelease(release) {
     .then(data => {
         console.log('Response:', data);
         if (data.success) {
-            // Open the release detail page in a new tab
+            // open the release detail page in a new tab
             window.open(`/release/${release.id}/`, '_blank');
         } else {
             alert('Failed to add release: ' + data.error);
@@ -470,16 +467,16 @@ function addRelease(release) {
     });
 }
 
+// function to add a release to a collection
 function addReleaseToCollection(collectionId, release) {
-    console.log('Adding release to collection:', collectionId, release);
-    console.log('Release:', release);
-
+    // make a POST request to the server
     fetch('/add_release_to_collection/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken') // CSRF token handling
         },
+        // send the collection id and release data
         body: JSON.stringify({
             collection_id: collectionId,
             release: release
@@ -500,6 +497,7 @@ function addReleaseToCollection(collectionId, release) {
     });
 }
 
+// function to get the CSRF token
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -515,29 +513,30 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Function to close the collection overlay
+// function to close the collection overlay
 function closeCollectionOverlay() {
     document.getElementById('overlay-background').style.display = 'none';
     var collectionOverlay = document.getElementById('collection-overlay');
     collectionOverlay.style.display = 'none';
 }
 
-// Add click event listeners to search-overlay images
+// add click event listeners to search-overlay images
 document.querySelectorAll('.recording-list').forEach(img => {
     img.addEventListener('click', function() {
         openCollectionOverlay(this.src);
     });
 });
 
-// Add click event listener to the overlay background to close the collection overlay
+// add click event listener to the overlay background to close the collection overlay
 document.getElementById('overlay-background').addEventListener('click', closeCollectionOverlay);
 
-// Add click event listeners to search-overlay images
+// add click event listeners to search-overlay images
 document.querySelectorAll('.recording-list').forEach(img => {
     img.addEventListener('click', function() {
         openCollectionOverlay(this.src);
     });
 });
+
 // Filters-------------------------------------------------------------------------------------------------------------------
 document.getElementById('show-checkboxes-btn').addEventListener('click', function() {
     var checkboxesContainer = document.getElementById('checkboxes-container');
@@ -550,6 +549,7 @@ document.getElementById('show-checkboxes-btn').addEventListener('click', functio
 
 document.querySelectorAll('input[name="release_type"]').forEach(checkbox => {
     checkbox.addEventListener('change', function() {
+        // uncheck all other checkboxes when one is checked
         if (this.checked) {
             document.querySelectorAll('input[name="release_type"]').forEach(otherCheckbox => {
                 if (otherCheckbox !== this) {
@@ -560,9 +560,9 @@ document.querySelectorAll('input[name="release_type"]').forEach(checkbox => {
     });
 });
 
+// function to get the selected release type
 function getSelectedReleaseType() {
     var checkbox = document.querySelector('input[name="release_type"]:checked');
     var selectedReleaseType = checkbox ? checkbox.value : '';
-    console.log('Selected release type:', selectedReleaseType);
     return selectedReleaseType;
 }
