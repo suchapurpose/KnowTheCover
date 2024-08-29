@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import TodoItem
+from .models import ReleaseList, Release
 
 # Register your models here.
-admin.site.register(TodoItem)
+admin.site.register(ReleaseList)
+admin.site.register(Release)

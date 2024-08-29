@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Delete Collection{% endblock %}
+{% block content %}
+<div class="container mt-5 pt-5">
+    <h1 class="text-center mb-4">Delete Collection</h1>
+    <p class="text-center">Are you sure you want to delete the collection "{{ collection.name }}"?</p>
+    <div class="text-center">
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-delete">Delete</button>
+            <a href="{% url 'collections' %}" class="btn btn-custom">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

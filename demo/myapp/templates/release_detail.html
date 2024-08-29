@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}{{ release.title }}{% endblock %}
+{% block content %}
+<div class="container mt-5 pt-5">
+    <h1 class="text-center mb-4">{{ release.title }}</h1>
+    <div class="text-center mb-4">
+        <img src="{{ release.cover_image }}" class="img-fluid" alt="{{ release.title }}">
+    </div>
+    <div class="text-center mb-4">
+        <h3>Add to Collection</h3>
+        <form id="add-to-collection-form">
+            <select id="collection-select" class="form-control mb-3 custom-dropdown">
+                {% for collection in collections %}
+                    <option value="{{ collection.id }}">{{ collection.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="btn btn-custom" onclick="addToCollection()">Add to Collection</button>
+        </form>
+    </div>
+    <div class="text-center mb-4">
+        <h3>Release Detail</h3>
+        <div class="card-release">
+            <ul class="list-group text-left">
+                {% for key, value in release.release_data.items %}
+                    {% if key != "cover_image" %}
+                        <li class="list-group-item">
+                            <strong>{{ key }}:</strong>
+                            {% if value|is_dict or value|is_list %}
+                                {% include "nested_list.html" with data=value %}
+                            {% else %}
+                                <pre>{{ value|pretty_json }}</pre>
+                            {% endif %}
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+<script>
+    const releaseData = {{ release.release_data|safe }};
+    function listNestedKeys(obj, parentKey = '') {
+        for (const [key, value] of Object.entries(obj)) {
+            const fullKey = parentKey ? `${parentKey}.${key}` : key;
+            if (typeof value === 'object' && value !== null) {
+                if (Array.isArray(value)) {
+                    console.log(`Key: ${fullKey} (Array)`);
+                    value.forEach((item, index) => {
+                        listNestedKeys(item, `${fullKey}[${index}]`);
+                    });
+                } else {
+                    console.log(`Key: ${fullKey} (Object)`);
+                    listNestedKeys(value, fullKey);
+                }
+            } else {
+                console.log(`Key: ${fullKey}, Value: ${value}`);
+            }
+        }
+    }
+
+    listNestedKeys(releaseData);
+
+    const isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+    console.log('Is authenticated:', isAuthenticated);
+    const csrfToken = "{{ csrf_token }}";
+    function addToCollection() {
+        if (!isAuthenticated) {
+            window.location.href = "{% url 'login' %}?next={{ request.path }}";
+            return;
+        }
+
+        const collectionId = document.getElementById("collection-select").value;
+        const release = {{ release.release_data|safe }};
+        console.log('Adding release to collection:', collectionId, 'and ', release);
+        console.log('Release:', release);
+
+        fetch('/add_release_to_collection/', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                collection_id: collectionId,
+                release: release
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Release added to collection successfully!");
+            } else {
+                alert("Failed to add release to collection!");
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+<nav class="navbar navbar-expand-lg navbar-light">
+  <div class="container">
+    <a class="navbar-brand mx-auto" href="{% url 'leafletmap' %}">CoverArtMap</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav mx-auto">
+        {% if user.is_authenticated %}
+          <li class="nav-item custom-nav-item">
+            <a class="nav-link" href="{% url 'collections' %}">Collections</a>
+          </li>
+          <li class="nav-item custom-nav-item">
+            <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+          </li>
+        {% else %}
+          <li class="nav-item custom-nav-item">
+            <a class="nav-link" href="{% url 'login' %}">Login</a>
+          </li>
+        {% endif %}
+        {% if request.resolver_match.url_name == 'leafletmap' %}
+          <li>
+            <form class="d-flex" id="navbar-search-form" role="search">
+              {% csrf_token %}
+              <input class="form-control mr-sm-2" type="search" placeholder="Artist" aria-label="Search" name="searched" id="navbar-search-input">
+              <button class="btn-navbar-search btn-custom" type="submit">Search</button>
+            </form>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

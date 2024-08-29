@@ -1,0 +1,54 @@
+{% extends "base.html" %} {% load static %} {% block content %}
+<title>Leaflet Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>        
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://d3js.org/d3-dsv.v1.min.js"></script>
+<script>
+    var tsvData = "{% static 'js/country_boundaries_reduced.tsv' %}";
+    var countrySearchUrl = "{% url 'country_search' %}";
+    var artistSearchUrl = "{% url 'artist_search' %}";
+</script>
+<body>
+    <div id="map"></div>
+
+    <div id="search-overlay" class="overlay search-overlay">
+        <h3 id="search-name" class="text-center">Click on a country or type an artist name</h3>
+        <div id="search-results"></div>
+        <div id="pagination-controls"></div>
+    </div>
+
+    <div id="image-overlay" class="overlay">
+        <img class="overlay-content" id="overlay-image">
+    </div>
+
+    <button id="toggle-overlays-btn" onclick="toggleOverlay()">Toggle Overlay</button>
+
+    <button id="show-checkboxes-btn" class="btn-custom">Filters</button>
+    <div id="checkboxes-container" class="checkboxes-container">
+        <div class="checkboxes-column">
+            {% for release_type in valid_release_types %}
+                <label><input type="checkbox" name="release_type" value="{{ release_type }}"> {{ release_type }}</label><br>
+                <div id="releaseTypeContainer" style="display: none;">
+                    {{ release_type }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    </div>
+    <div id="overlay-background"></div>
+    <div id="collection-overlay" class="overlay" style="display: none;">
+        <div class="overlay-content">
+            <button type="button" class="close" aria-label="Close" onclick="closeCollectionOverlay()">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <h2>Your Collections</h2>
+            <ul id="collection-list" class="list-group"></ul>
+        </div>
+    </div>
+</body>
+
+<script src="{% static 'js/map_script.js' %}"></script>
+
+{% endblock %}

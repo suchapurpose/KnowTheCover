@@ -1,0 +1,27 @@
+{% load custom_filters %}
+{% if data|is_dict %}
+    <ul class="nested-list">
+        {% for subkey, subvalue in data.items %}
+            <li>
+                <strong>{{ subkey }}:</strong>
+                {% if subvalue|is_dict or subvalue|is_list %}
+                    {% include "nested_list.html" with data=subvalue %}
+                {% else %}
+                    {{ subvalue }}
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% elif data|is_list %}
+    <ul class="nested-list">
+        {% for item in data %}
+            <li>
+                {% if item|is_dict or item|is_list %}
+                    {% include "nested_list.html" with data=item %}
+                {% else %}
+                    {{ item }}
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

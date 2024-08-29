@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,19 +26,24 @@ SECRET_KEY = "django-insecure-s1bpx*t#&y4c%^%s0n4-uq*c$7loacq$*b6el)j7coj2q&2j1(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "myapp"
+    "myapp",
+    "users",
+    "musicbrainzngs",
+    "rest_framework",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
@@ -48,6 +54,11 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
 ]
 
 ROOT_URLCONF = "demo.urls"
@@ -55,7 +66,7 @@ ROOT_URLCONF = "demo.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, 'templates')],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -70,6 +81,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "demo.wsgi.application"
 
+ASGI_APPLICATION = "demo.asgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
@@ -80,7 +92,6 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -117,8 +128,26 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'myapp/static')]
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGIN_REDIRECT_URL = 'leafletmap'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}

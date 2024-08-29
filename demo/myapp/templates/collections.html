@@ -1,0 +1,38 @@
+{% extends "base.html" %} {% block title %} {% endblock %}
+{% block content %}
+<div class="container mt-5 pt-5">
+    <h1 class="text-center mb-4">My Collections</h1>
+    <div class="text-center mb-4">
+        <a href="{% url 'create_collection' %}" class="btn btn-custom">Create New Collection</a>
+    </div>
+    <div class="row">
+        {% for collection in collections %}
+            <div class="col-md-4 mb-4">
+                    <div class="card position-relative">
+                        <button class="close-btn-collection" onclick="location.href='{% url 'delete_collection' collection.id %}'">&times;</button>
+                        <a href="{% url 'collection_detail' collection.id %}">
+                            <div class="card-body text-black">
+                                <h5 class="card-title">{{ collection.name }}</h5>
+                                {% if collection.releases.count == 0 %}
+                                    <p class="card-text">No releases in this collection</p>
+                                {% else %}
+                                    <p class="card-text">{{ collection.releases.count }} releases in this collection</p>
+                                    <div class="releases">
+                                        {% for release in collection.releases.all|slice:"5" %}
+                                            <img src="{{ release.cover_image }}" class="img-fluid" alt="{{ release.title }}" loading="lazy">
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </a>
+                    </div>
+                </a>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <p class="text-center">No collections found</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

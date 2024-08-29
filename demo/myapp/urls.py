@@ -1,3 +1,4 @@
+# urls.py
 from django.urls import path
 # to import the view above
 from . import views
@@ -8,8 +9,15 @@ from . import views
 urlpatterns = [
 	# empty path "" = go to the base url of the website
 	# connect to views.home
-	path("", views.home, name="home"),
-    path("todos/", views.todos, name="todos"),
-    path("leafletmap/", views.leafletmap, name="leafletmap"),
-    path("apitest/", views.apitest, name="apitest")
+    path("", views.leafletmapajax, name="leafletmap"),
+    path('country_search/', views.CountrySearchView.as_view(), name='country_search'),
+    path('artist_search/', views.ArtistSearchView.as_view(), name='artist_search'),
+    path('collections/', views.collections, name='collections'),
+    path('collections/create/', views.create_collection, name='create_collection'),
+    path('collections/get_user_collections/', views.get_user_collections, name='get_user_collections'),
+    path('add_release_to_collection/', views.add_release_to_collection, name='add_release_to_collection'),
+    path('collection/<str:collection_id>/', views.collection_detail, name='collection_detail'),
+    path('delete_collection/<str:collection_id>/', views.delete_collection, name='delete_collection'),
+    path('release/<str:release_id>/', views.release_detail, name='release_detail'),
+    path('delete_release_from_collection/<str:collection_id>/<str:release_id>/', views.delete_release_from_collection, name='delete_release_from_collection'),
 ]

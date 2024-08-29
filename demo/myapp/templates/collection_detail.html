@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Collection Detail{% endblock %}
+{% block content %}
+<div class="container mt-5 pt-5">
+    <h1 class="text-center mb-4">{{ collection.name }}</h1>
+    <div class="row">
+        {% if collection.releases.count == 0 %}
+            <div class="col-12">
+                <p class="text-center">No releases in this collection</p>
+            </div>
+        {% else %}
+            {% for release in collection.releases.all %}
+                <div class="col-md-4 mb-4">
+                    <div class="card position-relative">
+                        <button class="close-btn" onclick="location.href='{% url 'delete_release_from_collection' collection.id release.release_id %}'">&times;</button>
+                        <a href="{% url 'release_detail' release.release_id %}">
+                            <img src="{{ release.cover_image }}" class="card-img-top" alt="{{ release.title }}">
+                            <div class="card-body text-black">
+                                <h5 class="card-title">{{ release.title }}</h5>
+                            </div>
+                        </a>    
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
